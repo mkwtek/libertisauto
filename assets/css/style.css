@@ -10,14 +10,83 @@ body::before {
     border-radius: 10px;
 }
 
+.nav-link { 
+    /* color: whitesmoke;   */
+    color: rgb(255, 255, 255);  
+}
+    
+.nav-link:hover {
+/* color: rgb(108, 117, 125); bootstrap Secondary charcoal */
+/* color: rgb(220, 53, 69); bootstrap Danger red */
+     color: rgb(185, 185, 185); /* grey color */
+   
+}
+
+ /* Sets the Reviews Testimonials Carousel to a fixed height on Desktop so that it does not move content below it up and down */
+ #carouselExampleControls {
+    height: 700px;
+    overflow: auto;
+}
+
+#surecritic {
+    height: 30px;
+    width: auto;
+}
+
+
+/* Note the below media query is MIN WITDH */
 @media (min-width: 768px) {
     .news-input {
         width: 50%;
     }
+    /* .navbar-toggler {
+        border: 0 !important; removes bootstrap hamburger menu border 
+    }*/
 }
 
+/* Note the below media query is MAX NOT MIN WITDH */
+@media (max-width: 768px) {
+
+    /* Position the toggle button at the top right corner */
+    .navbar-toggler {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        /*border: 0 !important;  removes bootstrap hamburger menu border */
+    }
+
+    /* Add padding to the top of the hamburger menu collapse content to make space for the fixed-top navbar */
+    .navbar-collapse {
+        padding-top: 1.5rem; /* You can adjust this value based on your specific design */
+    }
+
+    /* Sets the Reviews Testimonials Carousel to a fixed height so that it does not move content below it up and down */
+    #carouselExampleControls {
+        height: 1010px;
+        overflow: auto;
+    }
+}
+
+
+
+
+
+
+
 /* Nav Bar Hamburger Menu Color change to red */
-.navbar-dark .navbar-toggler-icon { 
+/* .navbar-dark .navbar-toggler-icon { 
 background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28220, 53, 69, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
 };
+*/
+
+/* Nav Bar Hamburger Menu Color change to brighter red */
+/* .navbar-dark .navbar-toggler-icon { 
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%282255, 0, 0, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
+    };
+*/
+
+/* Nav Bar Hamburger Menu Color change to brighter white */
+ .navbar-dark .navbar-toggler-icon { 
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%282255, 255, 255, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
+    };
 

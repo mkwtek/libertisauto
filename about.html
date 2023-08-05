@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css"> -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"> 
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="icon" href="./assets/img/favicon_tools.png" type="image/gif" sizes="32x32">
+    <title>Liberti's Auto Electric</title>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg bg-dark navbar-dark py-3 fixed-top border-bottom border-secondary">
+        <div class="container">
+            <!-- <div> -->
+                <!-- <i class="bi bi-tools text-light"></i> -->
+                <!-- <span><i class="bi bi-car-front-fill text-light"></i><i class="bi bi-activity text-danger"></i></span> -->
+            <!-- </div>  -->
+            <a href="./index.html" class="navbar-brand">
+                <span><i class="bi bi-car-front-fill text-light"></i><i class="bi bi-activity text-danger"></i></span>Liberti's Auto Electric
+            </a> 
+
+            <button 
+                class="navbar-toggler" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#navmenu"
+            >
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navmenu">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a href="./index.html#about" class="nav-link  text-end me-3"><i class="bi bi-info-circle text-white-50">&#160;</i> About Us</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./index.html#questions" class="nav-link  text-end me-3"><i class="bi bi-question-circle text-white-50">&#160;</i> Questions</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./index.html#reviews" class="nav-link  text-end me-3"><i class="bi bi-people-fill text-white-50">&#160;</i> Reviews</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="./index.html#contact" class="nav-link  text-end "><i class="bi bi-telephone text-white-50"></i>&#160;<i class="bi bi-envelope-at text-white-50">&#160;</i> Contact</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- About Section -->
+    <section id="about" class="p-4">
+        <div class="container">
+            <div class="row align-items-center justify-content-between">
+                
+                <div class="col-md p-4 text-center col-lg-10 mx-auto">
+                    <div>
+                        <img id="mrliberti" src="./assets/img/mrliberti_bw_short.jpg" class="img-fluid border border-1 border-secondary mb-3" alt="liberti's team" width="1400px" height="auto">
+                    </div>
+                    
+                    <h2 class="border-bottom p-2">About Us</h2>
+                    <p class="lead">
+                        We Have been in business at our original location in Milpitas, CA since 1971! 
+                    </p>
+                    <div class="text-start ">
+                        <p>
+                            Welcome to Liberti's Auto Electric, your trusted and reliable auto repair service in Milpitas, CA. With a longstanding and strong commitment to providing top-notch service, our ASE Certified technicians are dedicated to quickly and accurately diagnosing and resolving any automotive issues, saving you both time and money.
+                        </p>
+                        <p>
+                            We pride ourselves on being auto electrical specialists, well-versed in employing the latest diagnostic strategies, cutting-edge technology, and advanced tools. Say goodbye to the "guess and check" parts-changer repairs at other shops. Our skilled technicians use their expertise to pinpoint the problem with precision, ensuring that we address the root cause and fix it right the first time. 
+                        </p>
+                        <p>
+                            Your vehicle deserves the best care, and that's precisely what we offer. Whether it's a minor tune-up or a major overhaul, our team is equipped to handle it all. Rest assured that when you entrust your vehicle to us, we will diagnose the issue accurately, make the necessary repairs, and thoroughly verify its proper working condition before considering it "fixed."
+                        </p>
+                        <p>
+                            Your satisfaction is our priority, and we take every measure to provide exceptional service. When you bring your vehicle to Liberti's Auto Electric, you can trust that it will receive the care and attention it deserves. After the repairs are complete, we meticulously verify the proper working condition of your vehicle to ensure that it is ready to hit the road safely.
+                        </p>
+                        <p>
+                            As a part of the Milpitas community, we take pride in serving our friends and neighbors with dependable and trustworthy auto repair solutions. Our aim is not just to fix your vehicle but also to build lasting relationships with our customers, based on mutual trust and satisfaction.
+                        </p>
+                        <p>  
+                            When it comes to your automotive needs, don't settle for less. Experience the difference at Liberti's Auto Electric, where our focus on trustworthy, expert auto repair services, efficiency, and customer service sets us apart. Visit us today for reliable, expert auto repair services that will exceed your expectations. 
+                        </p>
+                        <p>
+                            Thank you for choosing Liberti's Auto Electric, where we care for your vehicle like it's our own. Your satisfaction is our priority, and we look forward to serving you and your vehicle with the utmost care and professionalism.
+                        </p>
+                    </div>
+                    <a href="./index.html" class="btn btn-light mt-3">
+                        <i class="bi bi-chevron-right"></i> Back to Home Page 
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+   
+
+    <!-- Footer -->
+    <footer class="p-3 bg-dark text-white text-center position-relative">
+        <div class="container">
+            <p class="lead">Copyright &copy; 2023 <br><i class="bi bi-car-front-fill"></i><i class="bi bi-activity text-danger"></i>Liberti's Auto Electric</p>
+            <p>Website by <br>
+                <a href="https://mkwtek.github.io/portfolio/" target="_blank" class="link-danger  m-1">Matt Whitcomb </a><i class="bi bi-code-slash"></i>
+            </p>
+            <!-- <a href="#" class="position-absolute bottom-0 end-0 p-5"> -->
+            <!-- <a href="#" class="d-block position-fixed bottom-0 end-0 p-3"> Changed classes: d-block, position-fixed -->
+            <a href="#" class="position-absolute bottom-0 end-0 p-3">
+                <i class="bi bi-arrow-up-circle h1 text-danger"></i>
+            </a>
+        </div>
+    </footer>
+
+    
+
+    <script src="./assets/js/app.js" ></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
+
+</body>
+</html>
