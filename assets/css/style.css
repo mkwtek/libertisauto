@@ -1,3 +1,8 @@
+/* Set bootstrap page background to dark  
+:root {
+    --bs-body-bg: rgb(52, 58, 64);
+}*/
+
 body::before {
     display: block;
     content: '';
@@ -62,12 +67,19 @@ body::before {
 
     /* Sets the Reviews Testimonials Carousel to a fixed height so that it does not move content below it up and down */
     #carouselExampleControls {
-        height: 1010px;
+        height: 700px;
         overflow: auto;
     }
 }
 
-
+/* Note the below media query is MAX NOT MIN WITDH */
+@media (max-width: 480px) {
+    /* Sets the Reviews Testimonials Carousel to a fixed height so that it does not move content below it up and down */
+    #carouselExampleControls {
+        height: 1040px;
+        overflow: auto;
+    }
+}
 
 
 
