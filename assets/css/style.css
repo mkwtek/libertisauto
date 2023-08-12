@@ -27,6 +27,91 @@ body::before {
    
 }
 
+/* Nav Animations */
+#nav_car_in {
+    animation-delay: 0ms;
+    animation-duration: 400ms;
+}
+
+#navflash {
+    animation-delay: 60ms;
+    animation-duration: 300ms;
+}
+
+#navlibertis {
+    animation-delay: 30ms;
+    animation-duration: 600ms;
+}
+
+
+#navabout {
+    animation-delay: 0.4s;
+    animation-duration: 0.4s;
+}
+
+#navquest {
+    animation-delay: 0.3s;
+    animation-duration: 0.4s;
+}
+
+#navrev {
+    animation-delay: 0.2s;
+    animation-duration: 0.4s;
+}
+
+#navcon {
+    animation-delay: 0.1s;
+    animation-duration: 0.4s;
+}
+
+/* Hero Sections Animations */
+#herolibertis {
+    animation-delay: 200ms;
+    animation-duration: 1s;
+}
+
+#herospecialists {
+    animation-delay: 300ms;
+    animation-duration: 1.2s;
+}
+
+#heroblurb {
+    animation-delay: 700ms;
+    animation-duration: 1.9s;
+}
+
+#msgbtn {
+    animation-delay: 1200ms;
+    animation-duration: 0.5s;
+}
+
+#heropic {
+    animation-delay: 700ms;
+    animation-duration: 3s;
+}
+
+/* Newsletter Bar Section */
+#news {
+    animation-delay: 800ms;
+    animation-duration: 0.75s;
+}
+
+/* Boxes Section Animation */
+#box1 {
+    animation-delay: 850ms;
+    animation-duration: 0.75s;
+}
+
+#box2 {
+    animation-delay: 950ms;
+    animation-duration: 0.75s;
+}
+
+#box3 {
+    animation-delay: 1000ms;
+    animation-duration: 0.75s;
+}
+
  /* Sets the Reviews Testimonials Carousel to a fixed height on Desktop so that it does not move content below it up and down */
  #carouselExampleControls {
     height: 700px;

@@ -7,6 +7,7 @@
     <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css"> -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"> 
     <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/> 
     <link rel="stylesheet" href="./assets/css/style.css">
     <link rel="icon" href="./assets/img/favicon_tools.png" type="image/gif" sizes="32x32">
     <title>Liberti's Auto Electric</title>
@@ -29,7 +30,7 @@
                 <!-- <span><i class="bi bi-car-front-fill text-light"></i><i class="bi bi-activity text-danger"></i></span> -->
             <!-- </div>  -->
             <a href="#" class="navbar-brand">
-                <span><i class="bi bi-car-front-fill text-light"></i><i class="bi bi-activity text-danger"></i></span>Liberti's Auto Electric
+                <span><i id="nav_car_in" class="bi bi-car-front-fill text-light animate__animated animate__lightSpeedInLeft"></i><i id="navflash" class="bi bi-activity text-danger animate__animated animate__flash"></i></span><span id="navlibertis" class="animate__animated animate__fadeIn">Liberti's Auto Electric</span>
             </a> 
 
             <button 
@@ -44,16 +45,16 @@
             <div class="collapse navbar-collapse" id="navmenu">
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
-                        <a href="#about" class="nav-link  text-end me-3"><i class="bi bi-info-circle text-white-50">&#160;</i> About Us</a>
+                        <a href="#about" id="navabout" class="nav-link  text-end me-3 animate__animated animate__fadeInRight"><i class="bi bi-info-circle text-white-50">&#160;</i> About Us</a>
                     </li>
                     <li class="nav-item">
-                        <a href="#questions" class="nav-link  text-end me-3"><i class="bi bi-question-circle text-white-50">&#160;</i> Questions</a>
+                        <a href="#questions" id="navquest" class="nav-link  text-end me-3 animate__animated animate__fadeInRight"><i class="bi bi-question-circle text-white-50">&#160;</i> Questions</a>
                     </li>
                     <li class="nav-item">
-                        <a href="#reviews" class="nav-link  text-end me-3"><i class="bi bi-people-fill text-white-50">&#160;</i> Reviews</a>
+                        <a href="#reviews" id="navrev" class="nav-link  text-end me-3 animate__animated animate__fadeInRight"><i class="bi bi-people-fill text-white-50">&#160;</i> Reviews</a>
                     </li>
                     <li class="nav-item">
-                        <a href="#contact" class="nav-link  text-end me-3 me-md-0"><i class="bi bi-telephone text-white-50"></i>&#160;<i class="bi bi-envelope-at text-white-50">&#160;</i> Contact</a>
+                        <a href="#contact" id="navcon" class="nav-link  text-end me-3 me-md-0 animate__animated animate__fadeInRight"><i class="bi bi-telephone text-white-50"></i>&#160;<i class="bi bi-envelope-at text-white-50">&#160;</i> Contact</a>
                     </li>
                 </ul>
             </div>
@@ -66,12 +67,12 @@
           <div class="d-sm-flex align-items-center justify-content-between flex-column flex-sm-row mt-4">
             <div>
               <!-- <img src="./assets/img/oldlogo.jpeg" alt="Avatar Logo" style="width:500px;">  -->
-              <h1><span class="text-white"> <i class="bi bi-tools text-light"></i> Liberti's Auto Electric </h1></span> 
-              <h2><span class="text-white"> Automotive </span> <span class="text-danger"> Specialists </span></h2>
-              <p class="lead my-4">
-                From classics, to modern gas/diesel, hybrid, and modified performance vehicles, we service them all and stay current with new technologies and the training necessary to work on them.
+              <h1 id="herolibertis" class="animate__animated animate__zoomIn"><span class="text-white"><i class="bi bi-tools text-light"></i> Liberti's Auto Electric </h1></span> 
+              <h2 id="herospecialists" class="animate__animated animate__zoomIn"><span class="text-white"> Automotive </span> <span class="text-danger"> Specialists </span></h2>
+              <p id="heroblurb" class="lead my-4 animate__animated animate__fadeIn">
+                From classics, to modern gas/diesel, hybrid, and modified performance vehicles, we service them all and stay current with new technologies and the training necessary to work on them. Give us a call today at (408) 263-3339.
               </p>
-              <button class="btn btn-danger btn-lg" 
+              <button id="msgbtn" class="btn btn-danger btn-lg animate__animated animate__bounceIn" 
                 data-bs-toggle="modal" 
                 data-bs-target="#message"
               >
@@ -87,7 +88,7 @@
             <img class="img-fluid w-50 d-none d-sm-block mt-5 mt-sm-0" src="./assets/img/shopbomberclose.jpg" alt="pictures of cars for large screens">
             -->
             <!-- newest way to achieve same result but simplified and more responsive -->
-            <div class="col-sm-6 text-center mt-5 mt-sm-0 border border-0 border-secondary-subtle">
+            <div id="heropic" class="col-sm-6 text-center mt-5 mt-sm-0 border border-0 border-secondary-subtle animate__animated animate__fadeIn">
                 <img class="img-fluid w-100" src="./assets/img/shopbomberclose.jpg" alt="pictures of cars for small screens">
             </div>
             <!-- end newest -->
@@ -97,7 +98,7 @@
       
 
     <!-- Newsletter Section -->
-    <section class="bg-secondary text-light p-4">
+    <section id="news" class="bg-secondary text-light p-4 animate__animated animate__slideInLeft">
         <div class="container">
             <div class="d-md-flex justify-content-between align-items-center">
                 <h3 class="mb-3 mb-md-0">Sign Up For Our Newsletter</h3>
@@ -123,7 +124,8 @@
     <section class="p-4">
         <div class="container">
             <div class="row text-center g-4">
-                <div class="col-md">
+                <!-- Item 1 -->
+                <div id="box1" class="col-md animate__animated animate__fadeInUp">
                     <div class="card bg-dark text-light">
                         <div class="card-body text-center">
                             <div class="h1 mb-3">
@@ -137,7 +139,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md">
+                <!-- Item 2 -->
+                <div id="box2" class="col-md animate__animated animate__fadeInUp">
                     <div class="card bg-secondary text-light">
                         <div class="card-body text-center">
                             <div class="h1 mb-3">
@@ -151,7 +154,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md">
+                <!-- Item 3 -->
+                <div id="box3" class="col-md animate__animated animate__fadeInUp">
                     <div class="card bg-dark text-light">
                         <div class="card-body text-center">
                             <div class="h1 mb-3">
