@@ -49,9 +49,35 @@
    that section flush to the very top of the viewport, and the navbar then
    covers/crops the first ~60-70px of it (its heading, usually). This tells
    the browser to stop short and leave that much room above every scroll
-   target, on every #anchor jump site-wide. */
+   target, on every #anchor jump site-wide.
+
+   Sept 2026: bumped from 72px to 88px. Measured navbar height directly
+   (69px on real mobile widths), so 72px left only a 3px buffer - enough to
+   clear it in one browser's font rendering but not necessarily another's
+   (reported live as the "Read More in FAQ's" / Questions section landing
+   slightly too low, its own heading partly tucked under the navbar, on an
+   iPhone in Safari specifically). 88px gives real breathing room instead
+   of a hairline margin. */
 html {
-    scroll-padding-top: 72px;
+    scroll-padding-top: 88px;
+}
+
+/* Reported bug, worse on Safari/iPhone than elsewhere: reloading the page,
+   or opening a link to it, sometimes lands scrolled near the bottom of
+   the page instead of the top or the intended section - not every time,
+   "rolling the dice" as reported, which points at the browser's own
+   automatic scroll-position handling reacting to this page's late-loading
+   images and JS-injected navbar (see nav.js, search "scrollRestoration"
+   for the other half of this fix), not a fixed, always-reproduces bug.
+   overflow-anchor is the browser feature that tries to auto-compensate
+   scroll position when content ABOVE the viewport changes size while the
+   page is still settling (a late image, a font swap, the scroll-reveal
+   animations further down this file) - turning it off site-wide stops the
+   browser from "helpfully" moving the scroll position on its own after
+   the initial load/reload, which is the most likely source of an
+   otherwise unexplainable random jump. */
+html, body {
+    overflow-anchor: none;
 }
 
 /* Bump the navbar's bottom border from Bootstrap's default 1px to 3px.
@@ -328,7 +354,10 @@ nav.navbar {
 }
 
 #msgbtn {
-    animation-delay: 1200ms;
+    /* Pulled earlier from 1200ms to 1000ms (Sept 2026) so its pop lands
+       sooner - see .newsletter-section below, its duration was adjusted
+       to match this new finish time (1000ms + 0.5s = 1500ms). */
+    animation-delay: 1000ms;
     animation-duration: 0.5s;
 }
 
@@ -424,6 +453,29 @@ nav.navbar {
    gradient still matches what this section always looked like before. */
 .newsletter-section {
     background: linear-gradient(to bottom, #c4c8cb 0%, #e2e3e5 50%, #c4c8cb 100%);
+    /* Slide-in animation (Sept 2026): the grey band itself now travels in
+       from the left, same animate__lightSpeedInLeft effect as #newsletterbtn
+       (a slide plus a brief skew, rather than a plain straight-edged slide) -
+       a plain slideInLeft was tried first and looked cleaner technically, but
+       lightSpeedInLeft was the preferred look after comparing both.
+
+       Starts at 700ms, same as before - still just ahead of #newsletterbtn/
+       #box1 (800ms) so the band leads and the button/cards animate in on top
+       of it, not all at once. Duration is 0.8s so this band's landing
+       (700ms + 0.8s = 1500ms) lines up exactly with #msgbtn's own bounceIn
+       finishing (1000ms delay + 0.5s duration = 1500ms, pulled earlier from
+       1200ms - see #msgbtn above) - the band settling into place and the
+       "Send Us a Message" button's pop happen at the same instant instead
+       of independently. */
+    animation-delay: 700ms;
+    animation-duration: 0.8s;
+}
+/* Clips .newsletter-section's own off-screen starting position during the
+   slide-in above so it can't inflate the page's scrollable width for a
+   moment - same fix/reasoning as .scroll-reveal-group further down this
+   file. Scoped to just this wrapper, not html/body. */
+.newsletter-clip {
+    overflow-x: hidden;
 }
 .hero-content {
     max-width: 640px;
@@ -466,19 +518,24 @@ nav.navbar {
 /* Pulled forward along with #newsletterbtn (now 800ms) so all four
    overlap with the hero/#msgbtn wave instead of visibly trailing behind
    it - still starting right alongside the newsletter button so the two
-   run concurrently, just earlier overall. */
+   run concurrently, just earlier overall.
+
+   Sept 2026: each pulled another 100ms earlier (800/900/1000 ->
+   700/800/900) so the 3 cards finish sooner too - the 100ms stagger
+   between them is unchanged, and #box1 now starts right alongside
+   .newsletter-section's own 700ms start instead of 100ms after it. */
 #box1 {
-    animation-delay: 800ms;
+    animation-delay: 700ms;
     animation-duration: 0.75s;
 }
 
 #box2 {
-    animation-delay: 900ms;
+    animation-delay: 800ms;
     animation-duration: 0.75s;
 }
 
 #box3 {
-    animation-delay: 1000ms;
+    animation-delay: 900ms;
     animation-duration: 0.75s;
 }
 
@@ -602,12 +659,131 @@ nav.navbar {
     transition: min-height 0.3s ease;
 }
 
+/* These breakpoints exist purely to keep the reserved box above from
+   massively overshooting what a review actually needs on common phone
+   widths. Before this (Sept 3 2026), there was only ONE mobile override
+   (a flat 1040px below 480px) sized to fit the longest review at a very
+   narrow, now largely obsolete 320px-wide phone - real testers on normal
+   modern phones (375-430px, the vast majority of iPhones/Androids sold in
+   the last several years) got 130-225px of pure dead air below every
+   review, even the longest one, because their screens are wider than
+   320px and so need noticeably less height than that flat number assumed.
+
+   Each value below was measured directly (Playwright, temporarily
+   stripping min-height and reading each review's own natural content
+   height at that width) rather than guessed, then given a roughly
+   20-25px buffer on top of the tallest of the 3 reviews at that width.
+   If a review is ever added, removed, or reworded, re-measure rather than
+   eyeballing a new number - "Reviews carousel: mobile whitespace fix" in
+   the project notes has the full measured table this was built from.
+
+   Devices narrower than 375px (increasingly rare) aren't specifically
+   covered - min-height still just lets the box grow a bit further to fit
+   them there instead of clipping anything, exactly as the comment above
+   describes, it's just no longer reserving that same generous amount for
+   every far more common wider phone too. */
+@media (max-width: 400px) {
+    #carouselExampleControls .carousel-item {
+        min-height: 940px;
+    }
+}
+
+@media (min-width: 401px) and (max-width: 480px) {
+    #carouselExampleControls .carousel-item {
+        min-height: 820px;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 600px) {
+    /* This band (481-600px, roughly a large phone in landscape or a small
+       tablet portrait) was actually slightly UNDER-reserved before, not
+       over: the old flat 700px default (still used below 600px) is a
+       little short of the ~744px the longest review actually needs right
+       above the old 480px breakpoint, meaning the box would have quietly
+       grown taller specifically on review 2 in this narrow width range,
+       a small page-jump nobody happened to report. Fixed as part of the
+       same measurement pass. */
+    #carouselExampleControls .carousel-item {
+        min-height: 760px;
+    }
+}
+
 .carousel-slide-inner {
     min-height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+/* Reviews carousel prev/dots/next cluster - lives inside .carousel-slide-
+   inner now (see index.html, right after each review's own star rating),
+   not as a separate bar Bootstrap absolutely positions across the whole
+   reserved min-height box above. Being part of the same centered flex
+   column as the review text itself is the whole point: whatever height a
+   given review actually needs, this row sits right under it, instead of
+   pinned to the bottom of a box sized for the longest review with a big
+   gap of nothing above it on shorter ones.
+
+   Deliberately NOT reusing Bootstrap's own .carousel-control-prev/-next or
+   .carousel-indicators classes here - those carry the absolute-positioning
+   styling this is specifically trying to get away from. data-bs-slide and
+   data-bs-slide-to still work identically wherever the button physically
+   lives in the page, since Bootstrap's carousel wires those up through one
+   page-wide click listener keyed off each button's own data-bs-target
+   attribute, not its position in the DOM. */
+.review-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.review-nav-arrow {
+    display: inline-flex;
+    background: transparent;
+    border: 0;
+    padding: 0.5rem;
+    line-height: 1;
+    font-size: 1.5rem;
+    color: #495057; /* same deliberate dark gray as .testimonial-avatar-icon,
+                        already checked against this section's white
+                        background for contrast */
+    opacity: 0.7;
+    transition: opacity 0.15s ease;
+}
+
+.review-nav-arrow:hover,
+.review-nav-arrow:focus {
+    opacity: 1;
+}
+
+/* Same dash shape/sizing Bootstrap's own .carousel-indicators buttons used
+   (30px x 3px) - testers already reacted fine to that shape once it was
+   actually visible; the fix here is proximity to the text, not the shape
+   of the dashes themselves ("dashes are ok for now"). */
+.review-dots {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.review-dots button {
+    box-sizing: content-box;
+    width: 30px;
+    height: 3px;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background-color: #495057;
+    opacity: 0.4;
+    cursor: pointer;
+}
+
+.review-dots button.active {
+    opacity: 1;
 }
 
 /* #carouselExampleAutoplaying is the OTHER carousel on the page - the "Check
@@ -689,14 +865,6 @@ nav.navbar {
     font-size: 150px;
     line-height: 1;
     color: #495057;
-}
-
-@media (max-width: 480px) {
-    /* Narrower phones wrap every testimonial onto many more lines, so they
-       all need more baseline room here. */
-    #carouselExampleControls .carousel-item {
-        min-height: 1040px;
-    }
 }
 
 #surecritic {
