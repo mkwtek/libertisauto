@@ -104,6 +104,26 @@
          genuine incorrect-metadata bug, not just a style choice. -->
     <link rel="icon" href="./assets/img/favicon_tools.png" type="image/png" sizes="32x32">
     <title>Liberti's Auto Electric</title>
+    <!-- Open Graph tags: without these, a link preview (iMessage, texting
+         the URL, Facebook, etc.) has nothing to go on and falls back to
+         grabbing some largish image off the page on its own guess - which
+         is why Matt's own text message preview showed the ASE
+         certification badge instead of anything actually representing the
+         shop. og:image below reuses the same hero background photo
+         already used as this page's own LCP image (see the fetchpriority
+         preload further up, search "shopbomberclose"), so the shop's own
+         real photo is what shows up when this link is shared - no new
+         image needed. Needs to be an absolute URL (not "./assets/..."),
+         since whatever's fetching this tag isn't loading it as this page,
+         it's fetching it cold from wherever the link was shared. Swap
+         this for a dedicated logo graphic instead if a cleaner, more
+         "brand mark" preview image is ever wanted here. -->
+    <meta property="og:title" content="Liberti's Auto Electric">
+    <meta property="og:description" content="Automotive specialists in Milpitas, CA. Classics, gas, diesel, hybrid, and modified performance vehicles.">
+    <meta property="og:image" content="https://www.libertisauto.com/assets/img/shopbomberclose.jpg">
+    <meta property="og:url" content="https://www.libertisauto.com/">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
     <!-- MailerLite Universal -->
     <script>
         (function(w,d,e,u,f,l,n){w[f]=w[f]||function(){(w[f].q=w[f].q||[])
@@ -162,14 +182,24 @@
          every other button on the page (no custom color/animation, no
          btn-lg) - sized like the "Read More in FAQ's" buttons in the 3
          cards instead of the bigger "Send Us a Message" button, so it's
-         still clearly a red CTA but a smaller, less dominant one. -->
-    <section class="newsletter-section text-center p-4">
-        <div class="container">
-            <button id="newsletterbtn" class="btn btn-danger animate__animated animate__lightSpeedInLeft" data-bs-toggle="modal" data-bs-target="#newsletter">
-                <i class="bi bi-envelope-at"></i> Sign Up For Our Newsletter
-            </button>
-        </div>
-    </section>
+         still clearly a red CTA but a smaller, less dominant one.
+
+         The .newsletter-clip wrapper exists only to hold overflow-x:hidden
+         (see style.css) for the slide-in animation below - same reasoning
+         as .scroll-reveal-group elsewhere on this page: while
+         .newsletter-section is animating in via transform, its own
+         off-screen starting position can otherwise inflate the page's
+         scrollable width for a moment. Scoped to this one wrapper, not
+         html/body, so it can't affect anything else's scrolling. -->
+    <div class="newsletter-clip">
+        <section class="newsletter-section text-center p-4 animate__animated animate__lightSpeedInLeft">
+            <div class="container">
+                <button id="newsletterbtn" class="btn btn-danger animate__animated animate__lightSpeedInLeft" data-bs-toggle="modal" data-bs-target="#newsletter">
+                    <i class="bi bi-envelope-at"></i> Sign Up For Our Newsletter
+                </button>
+            </div>
+        </section>
+    </div>
 
     <!-- 3 Boxes Section -->
     <!-- gx-0 gx-md-4: Bootstrap's grid gutter pads each column on BOTH sides,
@@ -642,19 +672,67 @@
             <div class="row g-4">
 
                 <!-- Carousel Testimonial wrapper -->
-                <div id="carouselExampleControls" class="carousel slide text-center carousel-dark m-5 mx-auto col-12 col-lg-12" data-bs-ride="carousel" data-bs-interval="10000" data-bs-touch="true">
+                <!-- data-bs-interval dropped from 10000ms (10s) to just a
+                     fallback default here - real testers reported not
+                     having enough time to actually read a review before it
+                     auto-advanced. Each slide below now sets its OWN
+                     data-bs-interval instead (Bootstrap reads the CURRENTLY
+                     ACTIVE slide's own attribute to time its own turn, not
+                     the container's), roughly matched to how long that
+                     specific review actually takes to read (word count /
+                     ~130wpm casual reading speed, plus a few seconds to
+                     register the star rating and orient) rather than one
+                     flat number for reviews of very different lengths. -->
+                <div id="carouselExampleControls" class="carousel slide text-center carousel-dark m-5 mx-auto col-12 col-lg-12" data-bs-ride="carousel" data-bs-interval="30000" data-bs-touch="true">
 
-                    <!-- Carousel Dash Indicators -->
-                <!--    <div class="carousel-indicators">
-                        <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-                        <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="1" aria-label="Slide 2"></button>
-                        <button type="button" data-bs-target="#carouselExampleIndicators" data-bs-slide-to="2" aria-label="Slide 3"></button>
-                      </div>    -->
-                      <!-- /Carousel Dash Indicators --> 
-                    <div class="carousel-inner">            
+                    <!-- Carousel Dash Indicators: originally a single
+                         .carousel-indicators bar plus a pair of arrow
+                         buttons, both siblings of .carousel-inner and both
+                         absolutely positioned by Bootstrap to span the
+                         ENTIRE carousel box (top:0/bottom:0 for the arrows,
+                         bottom:0 for the dots) - full-width and full-height
+                         re: the .carousel-item min-height below, not the
+                         actual review text.
+
+                         That min-height (below, "reserves worst-case room")
+                         exists so the page content further down the page
+                         doesn't jump around as the carousel switches
+                         between a short review and a much longer one - but
+                         it also meant a short review (item 3, the Land
+                         Cruiser one) sat vertically centered near the
+                         middle of a box sized for the LONGEST review, with
+                         the dots pinned to the very bottom of that box -
+                         real testers reported that gap as "so much white
+                         space you'd never know the dots were even there
+                         unless you scrolled," and the arrows (centered on
+                         the full box, not on that particular review's own
+                         text) as "not centered on the paragraph" on some
+                         reviews.
+
+                         Fix: move the arrows+dots INSIDE .carousel-slide-
+                         inner instead (identical small copy at the end of
+                         every review below, right after its star rating),
+                         so they're part of the exact same centered flex
+                         group as that review's own text - wherever the
+                         text ends up sitting, the controls are right below
+                         it, every time, on every review, regardless of how
+                         short or long that particular review is. Bootstrap
+                         wires up data-bs-slide/data-bs-slide-to clicks
+                         through a single page-wide listener keyed off each
+                         button's own data-bs-target attribute (not by
+                         where the button lives in the DOM), so this works
+                         identically to one shared bar - it's only the
+                         active/inactive dot styling that Bootstrap's JS
+                         only auto-updates on the first copy it finds, which
+                         is why each review's own copy below has its OWN
+                         matching dot hardcoded active - since only the
+                         currently-showing review's copy is ever visible at
+                         once (the others are hidden with it), that's
+                         already always correct with no JS needed for it. -->
+                    <div class="carousel-inner">
             
-                        <!-- item 1 -->
-                        <div class="carousel-item active">
+                        <!-- item 1 - 93 words, ~47s to actually read -->
+                        <div class="carousel-item active" data-bs-interval="47000">
                             <div class="carousel-slide-inner scroll-reveal" data-aos="fadeIn">
                                 <i class="bi bi-person-circle testimonial-avatar-icon mb-4"></i>
                                 <div class="row d-flex justify-content-center">
@@ -674,6 +752,19 @@
                                 <li><i class="bi bi-star-fill text-danger"></i></li>
                                 <li><i class="bi bi-star-fill text-danger"></i></li>
                                 </ul>
+                                <div class="review-nav">
+                                    <button class="review-nav-arrow" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev" aria-label="Previous review">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    <div class="review-dots">
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Review 1"></button>
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="1" aria-label="Review 2"></button>
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="2" aria-label="Review 3"></button>
+                                    </div>
+                                    <button class="review-nav-arrow" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next" aria-label="Next review">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -687,7 +778,8 @@
                              top of a transition that already finished. Only item
                              1 (the one actually visible when you first scroll to
                              this section) gets the reveal. -->
-                        <div class="carousel-item">
+                        <!-- item 2 - 113 words, ~56s to actually read -->
+                        <div class="carousel-item" data-bs-interval="56000">
                             <div class="carousel-slide-inner">
                                 <i class="bi bi-person-circle testimonial-avatar-icon mb-4"></i>
                                 <div class="row d-flex justify-content-center">
@@ -707,11 +799,24 @@
                                     <li><i class="bi bi-star-fill text-danger"></i></li>
                                     <li><i class="bi bi-star-fill text-danger"></i></li>
                                 </ul>
+                                <div class="review-nav">
+                                    <button class="review-nav-arrow" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev" aria-label="Previous review">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    <div class="review-dots">
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="0" aria-label="Review 1"></button>
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="1" class="active" aria-current="true" aria-label="Review 2"></button>
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="2" aria-label="Review 3"></button>
+                                    </div>
+                                    <button class="review-nav-arrow" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next" aria-label="Next review">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- item 3 -->
-                        <div class="carousel-item">
+                        <!-- item 3 - 45 words, ~25s to actually read -->
+                        <div class="carousel-item" data-bs-interval="25000">
                             <div class="carousel-slide-inner">
                                 <i class="bi bi-person-circle testimonial-avatar-icon mb-4"></i>
                                 <div class="row d-flex justify-content-center">
@@ -731,24 +836,33 @@
                                     <li><i class="bi bi-star-fill text-danger"></i></li>
                                     <li><i class="bi bi-star-fill text-danger"></i></li>
                                 </ul>
+                                <div class="review-nav">
+                                    <button class="review-nav-arrow" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="prev" aria-label="Previous review">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    <div class="review-dots">
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="0" aria-label="Review 1"></button>
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="1" aria-label="Review 2"></button>
+                                        <button type="button" data-bs-target="#carouselExampleControls" data-bs-slide-to="2" class="active" aria-current="true" aria-label="Review 3"></button>
+                                    </div>
+                                    <button class="review-nav-arrow" type="button" data-bs-target="#carouselExampleControls" data-bs-slide="next" aria-label="Next review">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
                         <!-- item 4 not yet added... -->
-                        
-                    </div>
-                    <button class="carousel-control-prev d-none d-md-block" type="button" data-bs-target="#carouselExampleControls"
-                    data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Previous</span>
-                    </button>
 
-                    <button class="carousel-control-next d-none d-md-block" type="button" data-bs-target="#carouselExampleControls"
-                    data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                    <span class="visually-hidden">Next</span>
-                    </button>
-                    
+                    </div>
+                    <!-- The old shared prev/next arrow pair and shared dot
+                         strip that used to live here (as direct children of
+                         .carousel, absolutely positioned by Bootstrap to
+                         span the whole reserved box) were removed - each
+                         review above now carries its own identical copy of
+                         both, positioned right after its own star rating
+                         instead. See the long comment above .carousel-inner
+                         for why. -->
                 </div>
                 <!-- End Testimonial Carousel wrapper --> 
             </div>
@@ -1023,7 +1137,17 @@
                                 <!-- title added: without one, a screen reader announces this as
                                      an unlabeled "frame" with no way to know it's a map, let
                                      alone a map of what. -->
-                                <iframe title="Google Maps location of Liberti's Auto Electric" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3169.1828948938223!2d-121.90461492369536!3d37.40915173313649!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fc94b479fc527%3A0xfee1e4a9596f4246!2sLiberti&#39;s%20Auto%20Electric!5e0!3m2!1sen!2sus!4v1690823281461!5m2!1sen!2sus" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                <!-- loading="lazy" removed (Sept 2026): reported occasionally
+                                     coming up as a blank gray box that then works fine on a
+                                     follow-up reload. Lazy-loaded iframes (not images) have a
+                                     rougher cross-browser track record around exactly this -
+                                     the browser deciding when to actually start the request can
+                                     race with how it measures this element's on-screen position,
+                                     and occasionally never firing the load at all until something
+                                     else nudges it. This section is already most of the way down
+                                     the page, so the bandwidth/performance benefit of deferring it
+                                     was small next to trading it for an intermittently broken map. -->
+                                <iframe title="Google Maps location of Liberti's Auto Electric" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3169.1828948938223!2d-121.90461492369536!3d37.40915173313649!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fc94b479fc527%3A0xfee1e4a9596f4246!2sLiberti&#39;s%20Auto%20Electric!5e0!3m2!1sen!2sus!4v1690823281461!5m2!1sen!2sus" width="600" height="450" style="border:0;" allowfullscreen="" referrerpolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div><!-- /lc-block -->
                     </div>
@@ -1095,6 +1219,14 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                  <!-- contact-row-form / contact-row-success: same show/hide-a-sibling-
+                       div pattern as the newsletter modal's .row-form/.row-success
+                       further down this file, so a successful send shows a "Thank
+                       you!" message right here instead of navigating the whole page
+                       away to Formspree's own generic thanks page on formspree.io -
+                       see assets/js/app.js, search "contact-row-form" for the JS that
+                       does the swap. -->
+                  <div class="contact-row-form">
                     <p class="lead">Please fill out this form and we will get back to you as soon as we can!</p>
                     <!-- None of these fields had an autocomplete attribute, which is
                          what Chrome's DevTools "Issues" panel flags under "Input
@@ -1148,11 +1280,16 @@
                         </div>
 
                     </form>
+                  </div>
+                  <div class="contact-row-success text-center" style="display: none;">
+                    <h2>Thank you!</h2>
+                    <p>Your message has been sent - we'll get back to you as soon as we can.</p>
+                  </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <!-- <button type="button" class="btn btn-primary">Submit</button> -->
-                    <button type="submit" class="btn btn-danger" form="form1" value="Submit">Submit</button>
+                    <button type="submit" id="contactSubmitBtn" class="btn btn-danger" form="form1" value="Submit">Submit</button>
                 </div>
             </div>
         </div>
@@ -1167,7 +1304,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- MailerLite Embedded Form: Liberti's Auto Subscription Sign Up Form (form id 7uo0ai / 95979017777186043) -->
+                    <!-- MailerLite Embedded Form: Liberti's Auto Subscription Sign Up Form (Matt's own portfolio-demo account, form id 95979017777186043 - this copy intentionally uses Matt's own MailerLite/Formspree accounts instead of Steve's real ones, see the top-level README/notes for why) -->
                     <div id="mlb2-6904338" class="ml-form-embedContainer ml-subscribe-form ml-subscribe-form-6904338">
                         <div class="ml-form-align-center">
                             <div class="ml-form-embedWrapper embedForm">
@@ -1180,6 +1317,26 @@
                                                     <input aria-label="email" aria-required="true" type="email" class="form-control" name="fields[email]" placeholder="Enter Email" autocomplete="email" required>
                                                 </div>
                                             </div>
+                                        </div>
+                                        <!-- Required consent checkbox: Matt's own MailerLite account
+                                             also has this set as a required field (confirmed directly
+                                             against his account's own generated embed code), same as
+                                             Steve's real account does on the live site - MailerLite's
+                                             own script (webforms.min.js) won't let the form submit
+                                             without it. Kept MailerLite's required "ml-form-checkboxRow
+                                             ml-validate-required" classes (needed for that script to
+                                             find and validate this field, and to show the red error
+                                             state via .ml-error) and its bare, name-less <input
+                                             type="checkbox"> exactly as MailerLite generated it, just
+                                             restyled with Bootstrap classes to match the rest of this
+                                             form instead of MailerLite's own default look. -->
+                                        <div class="ml-form-checkboxRow ml-validate-required mb-3">
+                                            <label class="checkbox form-check d-flex align-items-start gap-2 text-start">
+                                                <input type="checkbox" class="form-check-input mt-1">
+                                                <div class="label-description form-check-label">
+                                                    <p class="mb-0 small">Opt in to receive news and updates.</p>
+                                                </div>
+                                            </label>
                                         </div>
                                         <div class="ml-form-recaptcha ml-validate-required mb-3 d-flex justify-content-center" style="float: none;">
                                             <!-- Google's recaptcha/api.js script used to be loaded
@@ -1262,7 +1419,7 @@
             $('.ml-subscribe-form-6904338 .row-form').hide();
         }
     </script>
-    <script src="https://groot.mailerlite.com/js/w/webforms.min.js?v1f25ee4b05f240a833e02c19975434a4" type="text/javascript"></script>
+    <script src="https://groot.mailerlite.com/js/w/webforms.min.js?v83147fa8ce2d95cb73ece7f28b469519" type="text/javascript"></script>
     <script>
         fetch("https://assets.mailerlite.com/jsonp/547738/forms/95979017777186043/takel")
     </script>
