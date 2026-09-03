@@ -1,12 +1,126 @@
-/* Set bootstrap page background to dark  
+/* Set bootstrap page background to dark
 :root {
     --bs-body-bg: rgb(52, 58, 64);
 }*/
 
-body::before {
-    display: block;
-    content: '';
-    height: 60px;
+/* Overrides just the font-display value on the bootstrap-icons web font -
+   the CDN file itself ships with font-display: block, which tells the
+   browser to hide any icon text for up to a few seconds while the font
+   file downloads rather than show it in a fallback font first (this is
+   what Lighthouse's "font display" flag was pointing at). swap instead
+   shows the icon's fallback glyph immediately and swaps in the real
+   bootstrap-icons font the instant it finishes loading - the icon is
+   visible sooner, it just might re-flow slightly once the real glyph
+   swaps in. This @font-face doesn't replace the file bootstrap-icons.css
+   loads, only redeclares font-display for that same exact font file (same
+   family name, same src) - since this stylesheet loads after
+   bootstrap-icons.css in <head>, this is the version the browser ends up
+   using. The src URL is written out in full (not a relative path) because
+   this file lives at a completely different location than the CDN's own
+   font folder, so a relative path here would point somewhere on THIS
+   site's own server instead of the CDN. */
+@font-face {
+    font-display: swap;
+    font-family: "bootstrap-icons";
+    src: url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff2?1fa40e8900654d2863d011707b9fb6f2") format("woff2"),
+         url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/fonts/bootstrap-icons.woff?1fa40e8900654d2863d011707b9fb6f2") format("woff");
+}
+
+/* body::before used to reserve a fixed 60px (80px on the narrowest phones,
+   see the removed media query that lived here) of empty space at the top
+   of the page, to stand in for the navbar - needed because position:fixed
+   (below) takes the navbar OUT of the page's normal flow entirely, so
+   without this the page's real content would start at the very top of the
+   screen and the fixed navbar would just float on top of it, covering it.
+
+   That whole spacer is gone now that the navbar uses position:sticky
+   instead (see the "NAVBAR POSITIONING: STICKY, NOT FIXED" block on the
+   nav.navbar rule, further down) - a sticky element stays IN normal flow
+   right up until it would scroll out of view, so it already reserves its
+   own space automatically, the same way any other element on the page
+   does. A hard-coded spacer height next to a navbar whose real height
+   changes (one line vs. two lines, depending on how narrow the screen is)
+   was always going to need occasional re-guessing anyway - this removes
+   that entire category of bug instead of tuning the number again. */
+
+/* The navbar stays pinned to the top of the viewport while scrolling
+   (sticky positioning - see the nav.navbar rule further down), so without
+   this, jumping to a section via a nav link (or any #id link) scrolls
+   that section flush to the very top of the viewport, and the navbar then
+   covers/crops the first ~60-70px of it (its heading, usually). This tells
+   the browser to stop short and leave that much room above every scroll
+   target, on every #anchor jump site-wide. */
+html {
+    scroll-padding-top: 72px;
+}
+
+/* Bump the navbar's bottom border from Bootstrap's default 1px to 3px.
+   Overriding --bs-border-width scoped to just the navbar (rather than on :root)
+   means only this element's border-utility classes pick up the change, not
+   every other border-bottom/border-top utility elsewhere on the page. */
+/* ============================================================
+   NAVBAR POSITIONING: ALWAYS STICKY, NOT FIXED, NO HIDE-ON-SCROLL
+   ============================================================
+   The <nav> in nav.js used to carry Bootstrap's "fixed-top" class, which
+   sets position:fixed - that class has been REMOVED from the markup on
+   purpose, because leaving it in place while overriding it with
+   position:sticky below was confusing to read later (it looked like the
+   navbar was fixed, when it was actually sticky the whole time). All of
+   "fixed-top"'s positioning is replaced directly below instead:
+   position:sticky (not fixed) and z-index:1030 (fixed-top's own value,
+   kept here explicitly so the navbar still layers above the rest of the
+   page's content the same way it always did).
+
+   WHAT IT LOOKS LIKE: the navbar stays pinned to the top of the screen at
+   all times while the rest of the page scrolls underneath it - at every
+   screen width, open menu or closed, scrolling up or down. It should
+   never disappear or slide away. (A scroll-direction-based show/hide-on-
+   scroll version of this was tried and then deliberately removed - it
+   made the navbar disappear while scrolling down the page, which is the
+   opposite of what's needed here: the navbar being reliably visible at
+   all times comes first, ahead of any scroll-based show/hide effect.)
+
+   WHY STICKY INSTEAD OF FIXED: on mobile browsers, the address bar
+   retracts as you scroll down (to give the page more room) and returns
+   as you scroll back up. That resizes the actual browser viewport out
+   from under any position:fixed element while it's happening, and a
+   fixed element isn't always kept perfectly in sync with that resize -
+   symptom seen during testing: the navbar rendered cropped/cut off, or
+   only partially visible, during active scrolling. position:sticky is
+   tracked as part of the page's normal scroll/layout process instead of
+   a separate fixed overlay layer, which is why it holds up better here.
+
+   RELATED: because sticky (unlike fixed) stays in the page's normal
+   flow, it doesn't need a fake spacer div to hold its place at the top
+   of the page - that's why there's no spacer above this point (see the
+   removed-spacer note above, near scroll-padding-top). If a spacer div
+   for the navbar ever needs to come back, that means this went back to
+   fixed positioning somewhere and the spacer will need to be re-added
+   too.
+
+   IMPORTANT IF THIS EVER STOPS STICKING AGAIN: position:sticky can only
+   stay pinned for as much extra height as its own PARENT element gives
+   it room to move within - if the navbar's parent element is no taller
+   than the navbar itself, the navbar has nowhere to stick TO and falls
+   out of "stuck" mode within a pixel or two of scrolling, needing a
+   scroll all the way back to the very top of the page before it
+   reappears. This exact bug happened here once already: nav.js used to
+   inject the navbar INSIDE a wrapper div, and that wrapper (having no
+   content besides the navbar) was exactly as tall as the navbar itself,
+   giving sticky zero room to work with. The fix was on the nav.js side,
+   not here - it now replaces that wrapper div entirely so the navbar
+   ends up a direct child of <body> instead (see the comment above the
+   injection line in nav.js for the full explanation). If the navbar
+   ever goes back to being wrapped in a tightly-fit container, this same
+   bug will come back too, and nothing in this CSS file will look wrong -
+   the cause is the HTML structure around the navbar, not this rule. */
+nav.navbar {
+    --bs-border-width: 3px;
+    position: sticky; /* see the note above this rule before changing this */
+    top: 0;
+    z-index: 1030; /* same value Bootstrap's "fixed-top" class used to set -
+                       keeps the navbar layered above the rest of the page's
+                       content, now that "fixed-top" is gone from the markup */
 }
 
 #map {
@@ -23,8 +137,116 @@ body::before {
 .nav-link:hover {
 /* color: rgb(108, 117, 125); bootstrap Secondary charcoal */
 /* color: rgb(220, 53, 69); bootstrap Danger red */
-     color: rgb(185, 185, 185); /* grey color */
-   
+     color: rgb(205, 205, 205); /* grey color - a shade lighter than the
+     185,185,185 this used to be, still a plain neutral grey (equal R/G/B,
+     no color tint), just easier to actually see against the dark navbar */
+
+}
+
+/* Icons next to each nav link (house, info, question mark, etc.) - used to
+   carry Bootstrap's text-white-50 class, a translucent white with no
+   relation to any other color on this navbar. Matching them to the exact
+   same solid grey the link text itself turns on hover (right above) ties
+   the icon color to a color already meaningful on this navbar instead of
+   an unrelated translucency, and keeps that grey visible and consistent
+   whether or not the link is currently being hovered. */
+.nav-icon {
+    color: rgb(205, 205, 205);
+}
+
+/* Underline hover/focus effect for the 5 main nav links (Home, About Us,
+   Questions, Reviews, Contact). nav.js renders these links only once - the
+   media query further up/down this file that turns the dropdown into a
+   vertical full-width list below 992px changes how they're LAID OUT, not
+   what they ARE - so this one rule, with no separate mobile version needed,
+   covers both the horizontal desktop row and the vertical mobile dropdown
+   automatically.
+
+   How it works: the pseudo-element starts at 0 width (so nothing is visible
+   at rest), pinned to the link's own bottom-left corner. On hover it
+   animates to 100% of the link's own width, left edge staying put the whole
+   time, so it reads as a line drawing itself in from the left rather than
+   growing outward from the center or fading in all at once. position:
+   relative on the link itself is what makes "the link's own box" the frame
+   of reference for that positioning, instead of the whole navbar.
+
+   :focus-visible is included right alongside :hover, not just :hover alone
+   - without it, someone tabbing through the nav with a keyboard (rather
+   than pointing a mouse at it) would get Bootstrap's own default focus
+   outline but none of this same visual feedback everyone else sees on
+   hover. */
+#navmenu .nav-link {
+    position: relative;
+}
+
+#navmenu .nav-link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    /* Was "bottom: 0", which pins the line to the very bottom edge of the
+       link's own padding box rather than close to the text itself - and
+       desktop/mobile don't even have the same amount of padding down there
+       (Bootstrap's own default ~8px on desktop vs. this file's own ~13.6px
+       on the mobile dropdown, a bit further up), so "0" meant two different
+       gaps depending on screen width, both bigger than intended. A small
+       fixed number instead means the line sits close to the same short
+       distance under the text everywhere, regardless of how much padding
+       happens to be below it on either version. */
+    bottom: 3px;
+    width: 0%;
+    height: 2px;
+    background-color: #dc3545;
+    transition: width 0.25s ease;
+}
+
+#navmenu .nav-link:hover::after,
+#navmenu .nav-link:focus-visible::after {
+    width: 100%;
+}
+
+/* Phone number links (hero blurb, the FAQ answer about scheduling by phone,
+   and the Contact Info list) - the phone number used to be plain text in
+   all 3 spots. On iPhones/iPads, Safari's own auto-detection was quietly
+   turning that text into a tap-to-call link styled in the browser's own
+   default blue, completely ignoring this page's own CSS - that's why the
+   number looked bright blue over the hero photo even though nothing here
+   ever asked for blue. The format-detection meta tag in each page's <head>
+   turns that auto-detection off, and real <a href="tel:..."> links (using
+   this class) take over instead, so the color and behavior are both fully
+   controlled here rather than left up to whichever browser happens to be
+   looking at the page.
+
+   Turning off Safari's automatic blue also removes the only visual cue
+   that used to say "you can tap this," so this class deliberately adds one
+   back:
+   - color: inherit keeps whatever color the link already had in its own
+     paragraph, instead of picking one fixed color - the hero blurb's text
+     is near-white against a dark photo, while the FAQ answer and Contact
+     Info line sit on plain white with normal dark body text, and a single
+     hardcoded color could only ever look right in one of those two
+     situations (red text, for instance, all but disappears against the
+     dark hero photo).
+   - The red underline is the same "this is interactive" accent color
+     already used for the nav links and the footer credit link above/below,
+     just always visible here rather than only appearing on hover - phones
+     don't have a hover state, so the cue needs to already be there before
+     anyone taps, not reveal itself after. */
+.tel-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: #dc3545;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+    font-weight: 600;
+}
+
+/* Darkens the underline itself (not the text) on hover/keyboard focus, the
+   same darker red Bootstrap already uses for its own link hover states
+   elsewhere on this page, as a small extra confirmation for anyone using a
+   mouse or a keyboard rather than a touchscreen. */
+.tel-link:hover,
+.tel-link:focus-visible {
+    text-decoration-color: #b02a37;
 }
 
 /* Nav Animations */
@@ -44,8 +266,19 @@ body::before {
 }
 
 
+/* Delays now count UP top-to-bottom (Home first, Contact last), so the
+   dropdown cascades downward from the navbar - matching where it visually
+   opens from and how people read the list. It was the reverse before
+   (Contact's delay was the shortest, Home's the longest), which made the
+   menu appear to build bottom-up, against the direction it actually drops
+   down from. Easy to flip back if you end up preferring the original feel. */
+#navhome {
+    animation-delay: 0.1s;
+    animation-duration: 0.4s;
+}
+
 #navabout {
-    animation-delay: 0.4s;
+    animation-delay: 0.2s;
     animation-duration: 0.4s;
 }
 
@@ -55,12 +288,12 @@ body::before {
 }
 
 #navrev {
-    animation-delay: 0.2s;
+    animation-delay: 0.4s;
     animation-duration: 0.4s;
 }
 
 #navcon {
-    animation-delay: 0.1s;
+    animation-delay: 0.5s;
     animation-duration: 0.4s;
 }
 
@@ -78,6 +311,20 @@ body::before {
 #heroblurb {
     animation-delay: 700ms;
     animation-duration: 1.9s;
+    /* The "Send Us a Message" button below this paragraph sat a bit too
+       close to it - the paragraph's own Bootstrap my-4 class gives it
+       1.5rem of margin on both top and bottom, but the last line of text
+       ends in a letter with a descender ("vehicles."), which visually eats
+       into that bottom margin and makes the real gap look smaller than the
+       matching 1.5rem gap above the paragraph. Bumping just this bottom
+       margin up compensates for that, without touching the my-4 class
+       itself - my-4 is also used on the "Official Approved Repair" heading
+       further down the page, and changing my-4 directly would have
+       stretched that heading's spacing too. This only targets this one
+       paragraph. !important is needed here because Bootstrap's own my-4
+       rule is also !important - a plain margin-bottom here would still
+       lose to it otherwise. */
+    margin-bottom: 2.5rem !important;
 }
 
 #msgbtn {
@@ -85,25 +332,148 @@ body::before {
     animation-duration: 0.5s;
 }
 
-#heropic {
-    animation-delay: 700ms;
-    animation-duration: 3s;
+/* Newsletter button entrance: same pattern as every other animated element
+   on the site - one plain animate.css class, just this ID's own
+   delay/duration on top. No JS involved. (A JS-driven "fade in, then
+   pulse" version briefly lived here - pulled back out, see the note in
+   app.js.)
+
+   animate__fadeInUp (tried first, matching the card buttons below it) was
+   wrong for THIS spot specifically - its keyframes start the element
+   shifted down by 100% of its own height, which is invisible in a tall
+   section but visibly pokes below this newsletter band's short, tightly
+   padded light-grey background before sliding up into place.
+
+   Now on animate__lightSpeedInLeft: the same effect already used on the
+   navbar's car icon (#nav_car_in in nav.js). Travels in horizontally
+   (skewed slide from the left) rather than vertically, so it doesn't run
+   into fadeInUp's short-container problem either. Timing unchanged from
+   the last round - still starts at the same moment as #box1/2/3 (1300ms)
+   so the two run concurrently. */
+#newsletterbtn {
+    /* Pulled forward to overlap with the hero content/#msgbtn wave instead
+       of starting only after it - the later 1300ms start made this (and
+       #box1/2/3 below) read as lagging behind everything else instead of
+       feeling like part of the same page-load moment. Now starts while
+       #herospecialists/#heroblurb are still animating and just before
+       #msgbtn (1200ms) finishes. */
+    animation-delay: 800ms;
+    animation-duration: 0.8s;
 }
 
-/* Newsletter Bar Section */
-#news {
+/* Hero Section: full-width background image with a dark overlay for text
+   contrast, everything centered (horizontally and vertically) over the image.
+   A directional left-right gradient only made sense for left-aligned text; with
+   centered text a uniform/symmetric scrim reads better regardless of what's
+   underneath it. min-height keeps it a proper "hero" size without depending on
+   a fixed image aspect ratio the way the old side-by-side layout did.
+
+   border-top + box-shadow give a deliberate visual break from the navbar above
+   it, since the navbar's dark color and this photo's darker areas could
+   otherwise blend into one indistinct mass with nothing marking where the nav
+   ends and the hero begins. */
+.hero-section {
+    /* Gradient and photo are both painted on THIS element, as stacked background
+       layers with identical size/position, that's what guarantees the darkening
+       covers the exact same full area as the image, top to bottom, regardless of
+       how tall the text content inside .hero-overlay happens to be. Previously
+       the gradient lived on .hero-overlay, which only grows to fit its own
+       content and is centered within this taller box, leaving the photo exposed
+       unfiltered above and below it. */
+    background-image:
+        radial-gradient(ellipse at center, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.6) 55%, rgba(0,0,0,0.45) 100%),
+        url('../img/shopbomberclose.jpg');
+    background-size: cover, cover;
+    background-position: center, center;
+    background-repeat: no-repeat, no-repeat;
+    min-height: 65vh;
+    display: flex;
+    align-items: center;
+    border-top: 3px solid #dc3545;
+    box-shadow: inset 0 10px 14px -10px rgba(0, 0, 0, 0.95);
+}
+.hero-overlay {
+    width: 100%;
+    padding: 3rem 0;
+    text-align: center;
+}
+
+/* Newsletter section (the plain grey "Sign Up For Our Newsletter" strip
+   right under the hero image, in index.html - search "Newsletter Section"
+   there). Used to just be Bootstrap's flat bg-secondary-subtle color (a
+   single light grey, #e2e3e5 - that utility class has been removed from
+   this section's markup now that the section paints its own background
+   here instead, so there's only one place controlling it). A top/bottom
+   border was tried here first and didn't look right, so this replaces
+   that with a soft vertical gradient instead: a little darker at the very
+   top and bottom, brightening up to that same original light grey right
+   in the middle. "to bottom" is what makes it a top-to-bottom fade rather
+   than sideways or diagonal - the three stops (dark, light, dark again)
+   are what give it that "frame" feeling at the edges instead of just
+   sliding from one flat color to another once.
+
+   Both the darker top/bottom color and the lighter middle color are
+   already-used Bootstrap greys (not invented one-off values) so this
+   stays visually related to the rest of the page's neutral tones rather
+   than introducing a new shade: #c4c8cb is Bootstrap's own
+   secondary-border-subtle grey (a soft, deliberately NOT-too-dark grey -
+   a flatter, darker grey like the navbar's own #6c757d border looked too
+   harsh/heavy here and fought with how subtle this section is supposed to
+   read), and #e2e3e5 is that same original secondary-subtle background
+   color, kept as the bright middle point so the "brightest" part of this
+   gradient still matches what this section always looked like before. */
+.newsletter-section {
+    background: linear-gradient(to bottom, #c4c8cb 0%, #e2e3e5 50%, #c4c8cb 100%);
+}
+.hero-content {
+    max-width: 640px;
+    margin: 0 auto;
+}
+@media (max-width: 767px) {
+    .hero-section {
+        min-height: 75vh;
+        /* Somewhat darker on mobile, where the whole width is text rather than
+           text sharing space with more visible photo on the sides. */
+        background-image:
+            radial-gradient(ellipse at center, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.7) 60%, rgba(0,0,0,0.6) 100%),
+            url('../img/shopbomberclose.jpg');
+    }
+}
+
+/* Darkens the ground behind "Specialists" without reading as a visible box.
+   Several tight, low-spread black shadows stack into a soft dark halo hugging
+   just the letterforms, rather than a hard-edged rectangle behind the word.
+   (A white, then light-grey, 1px outline was tried on top of this same halo
+   for a round of accessibility polish - pulled back out again, it read as
+   an unwanted ring/edge around the letters rather than a clean look, so
+   this is back to just the plain halo it always was.)
+   Note for future reference: automated contrast checkers (axe, Lighthouse)
+   measure text color against the flat background color only - they don't
+   credit text-shadow, so this reads fine to a real person but won't score on
+   an automated audit the way a solid chip background would. If a client's
+   accessibility audit ever needs to show a passing number on paper, the
+   chip is the defensible version; this is the better-looking one for how
+   people actually see it. */
+.specialists-chip {
+    text-shadow:
+        0 0 3px rgba(0, 0, 0, 0.95),
+        0 0 8px rgba(0, 0, 0, 0.9),
+        0 0 16px rgba(0, 0, 0, 0.8),
+        0 1px 2px rgba(0, 0, 0, 0.95);
+}
+
+/* Boxes Section Animation */
+/* Pulled forward along with #newsletterbtn (now 800ms) so all four
+   overlap with the hero/#msgbtn wave instead of visibly trailing behind
+   it - still starting right alongside the newsletter button so the two
+   run concurrently, just earlier overall. */
+#box1 {
     animation-delay: 800ms;
     animation-duration: 0.75s;
 }
 
-/* Boxes Section Animation */
-#box1 {
-    animation-delay: 850ms;
-    animation-duration: 0.75s;
-}
-
 #box2 {
-    animation-delay: 950ms;
+    animation-delay: 900ms;
     animation-duration: 0.75s;
 }
 
@@ -112,57 +482,869 @@ body::before {
     animation-duration: 0.75s;
 }
 
- /* Sets the Reviews Testimonials Carousel to a fixed height on Desktop so that it does not move content below it up and down */
- #carouselExampleControls {
-    height: 700px;
-    overflow: auto;
+/* Hybrid card: back to a grey that's visually distinct from box1/box3's
+   bg-dark, per request - but NOT Bootstrap's stock bg-secondary (#6c757d),
+   which only pairs with white/text-light text at ~4.44:1 contrast, just
+   under WCAG AA's 4.5:1 minimum for normal-size text. This is Bootstrap's
+   own gray-700 (#495057) - one shade darker - which clears ~7.75:1 (AAA)
+   while still reading as a clearly lighter grey next to the almost-black
+   bg-dark cards. */
+.bg-hybrid-card {
+    background-color: #495057 !important;
+}
+
+/* .btn-newsletter (custom grey/red-accent/hover-lift styling) removed -
+   the newsletter button is back to plain, unstyled btn-danger in
+   index.html, matching every other button on the page instead of having
+   its own one-off color and animation. */
+
+/* Equal-height cards with bottom-aligned buttons: Repair/Hybrid/Service
+   have different amounts of text, so without this each card only grows to
+   fit its own content - the columns match height (Bootstrap's default
+   row behavior), but the cards inside them don't automatically fill that
+   height, leaving the three "Read More in FAQ's" buttons sitting at
+   different vertical positions. h-100 makes each card fill its stretched
+   column; the flex column + mt-auto on the button (see index.html) pushes
+   the button to the bottom of whatever space is left over, regardless of
+   how long the paragraph above it is. */
+.card.h-100 {
+    display: flex;
+    flex-direction: column;
+}
+.card.h-100 .card-body {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Scroll-reveal: the "content fades/slides in as you scroll to it" effect
+   common in WordPress builders (Elementor, Divi, etc.). Any element with
+   class "scroll-reveal" starts hidden here, then app.js adds
+   animate__animated plus one specific animate.css effect class (read from
+   its data-aos attribute) the first time it scrolls into view - reusing
+   the same animate.css library already loaded site-wide instead of adding
+   a separate scroll-animation library for one feature. animate.css's own
+   animation-fill-mode: both holds the element at the animation's finished
+   (fully visible) state afterward, so nothing needs to reset this back to
+   0 or clean up classes once it's played.
+
+   Someone with "reduce motion" turned on at the OS/browser level has said
+   they don't want scroll/entrance animations - this shows the content
+   immediately instead of hiding then animating it in. app.js checks the
+   same setting on the JS side, so this is covered either way. */
+.scroll-reveal,
+.scroll-reveal-item {
+    opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+    .scroll-reveal,
+    .scroll-reveal-item {
+        opacity: 1;
+    }
+}
+
+/* FIXES A REAL BUG: this is the exact same underlying bug as the mobile
+   nav-menu white-flash bug fixed above at #navmenu (see that comment for
+   the full mechanism if this one is unclear) - just triggered by scrolling
+   down the page instead of opening the hamburger menu.
+
+   Any scroll-reveal-item using a directional entrance effect (data-aos=
+   "fadeInLeft" or "fadeInRight" - currently the About Us image/text, the
+   ASE Certified text/logo, and the Contact Info/map columns) starts its
+   slide-in animation completely off to one side and animates into place.
+   For a brief moment while that's happening, the element is sitting
+   partly or fully outside the viewport - and with nothing to contain
+   that, the browser counts that temporary off-screen position as real
+   page content needing space, ballooning the page's actual scrollable
+   width past the screen's width for as long as the animation is still
+   running (well under a second). On a real phone that mismatch is what
+   triggers a brief, blank-white zoom-out/zoom-back-in glitch - reported
+   here as happening specifically while scrolling down to the About Us
+   section, where the effect is easiest to notice because the picture
+   slides in from off-screen on the LEFT (past the edge of the screen
+   behind you) at the same time the text slides in from off-screen on the
+   RIGHT, doubling the amount of extra "phantom" width for that moment.
+
+   overflow-x:hidden on the shared row wrapper (.scroll-reveal-group)
+   clips each sliding child to that row's own box while it's still
+   animating in, instead of letting its temporary off-screen position
+   inflate the whole page's width - exactly like the #navmenu fix above.
+   This doesn't change how the animation looks in any way that matters -
+   these elements were always going to spend their first moments outside
+   the visible area either way, this just stops that from being
+   visible/counted anywhere it shouldn't be. Scoped to the row wrapper
+   (not html/body) so it can't ever interfere with anything else on the
+   page's own scrolling or positioning. */
+.scroll-reveal-group {
+    overflow-x: hidden;
+}
+
+/* A hard, fixed height (what was here before) briefly clipped the top of
+   John Doe's testimonial - specifically his avatar photo - on narrow
+   phones: his testimonial, once wrapped to many short lines, actually
+   needed a bit more vertical room than the fixed number assumed, and
+   because the content is centered (.carousel-slide-inner below) plus
+   overflow was hidden, whatever went over that line got cropped off the
+   TOP of the slide, taking half the avatar with it.
+   min-height fixes that: it still guarantees the box is always at least
+   tall enough for a normal testimonial (so "More Reviews" below stays put
+   for Maria Kate, Anna, etc.), but if a particular slide genuinely needs
+   more room, the box simply grows a little to fit it instead of clipping
+   anything. The trade-off is honest: an unusually long testimonial could
+   shift the page below it slightly - but that's far better than visibly
+   cutting someone's photo in half.
+   Scoped to #carouselExampleControls specifically - there's a second,
+   completely separate carousel further down the page (the "Check Out Our
+   Work" photo gallery, #carouselExampleAutoplaying) that also uses
+   Bootstrap's plain .carousel-item class for its slides, and an unscoped
+   rule here would force its naturally-sized images into this too. */
+#carouselExampleControls .carousel-item {
+    min-height: 700px;
+    transition: min-height 0.3s ease;
+}
+
+.carousel-slide-inner {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* #carouselExampleAutoplaying is the OTHER carousel on the page - the "Check
+   Out Our Work" photo gallery further down, unrelated to the testimonials
+   one above. Its slide images (.d-block.w-100 in index.html, no width/height
+   attributes) were flagged by Chrome's "Lazy-loaded images should have
+   explicit dimensions" issue: without a reserved size, the page jumps when
+   each lazy photo finishes loading.
+   The fix isn't adding width/height attributes to the <img> tags - that was
+   tried and reverted (it visibly stretched at least one photo). The reason
+   why: those attributes only become "definite" pixel values in the box
+   model, they don't scale together. w-100 already makes width 100% of the
+   column (definite), and adding a raw height="1200" attribute makes height
+   a separately fixed 1200px (definite) - two independently fixed numbers
+   with no relationship to each other, so unless the column happens to be
+   exactly as many pixels wide as the attributes' width value, the box comes
+   out the wrong shape and the browser stretches the image to fill it
+   (object-fit defaults to "fill", not "contain"). This has nothing to do
+   with whether the photos actually are 1600x1200 - the same distortion
+   happens at literally any container width other than 1600px, regardless
+   of the real photo dimensions, because of how width/height ATTRIBUTES
+   combine with a percentage CSS width.
+   aspect-ratio, as an actual CSS property (not derived from HTML
+   attributes), doesn't have this problem: given one definite side (width,
+   from w-100) it computes the OTHER side (height) to match the ratio,
+   instead of that side becoming its own independent fixed number. That
+   reserves the right box at any screen width, which is what actually fixes
+   the layout-shift issue. object-fit: cover handles any individual photo
+   that isn't exactly 4:3 by cropping it to fill the box neatly instead of
+   squishing it - the same safety net the old width/height-attribute
+   approach didn't have. 4/3 matches this folder's own name
+   (assets/img/carousel_1600x1200/) - checked directly against the real
+   files afterward and every one sampled is genuinely 1600x1200, so this
+   isn't a guess anymore. */
+#carouselExampleAutoplaying .carousel-item img {
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+}
+
+/* aaaauto.png (550x200) and brakenlamp2.png (2322x1286) - the AAA and
+   brake/lamp station logos in the "Official Approved Repair" cards. Same
+   underlying problem and same fix as the carousel above: card-img-top only
+   sets width:100% (no height:auto), so a raw height attribute on these
+   would become a fixed pixel value independent of the card's actual
+   rendered width - distorting the logo at most screen sizes. object-fit:
+   contain instead of cover here (unlike the carousel) because these are
+   logos, not photos - cropping into a photo loses some background, but
+   cropping into a logo can cut off part of its text or border, which reads
+   as broken rather than just "tighter framing". Each one's aspect-ratio is
+   its own real file's ratio, so neither ever actually needs to crop or
+   letterbox - contain is just the safety net if either image is ever
+   swapped for one with a different ratio later. */
+#aaa-logo {
+    aspect-ratio: 550 / 200;
+    object-fit: contain;
+}
+
+#brakenlamp-logo {
+    aspect-ratio: 2322 / 1286;
+    object-fit: contain;
+}
+
+/* Generic placeholder avatar for testimonials - these are real reviews
+   pulled from Google/Yelp, but without the reviewer's real name or a photo
+   of them, so a stock/stand-in photo would only look more misleading next
+   to a real quote, not less. A plain icon reads as intentionally generic
+   rather than a missing image, and sizes/recolors easily to match the
+   site instead of depending on an external image host. */
+/* Color was #adb5bd (Bootstrap's own light gray) before - looked fine as a
+   soft, muted placeholder, but that light a gray against this section's
+   white background (see "bg-white" on the reviews section in index.html)
+   comes out under 2:1 contrast, nowhere near the 3:1 minimum required even
+   for something this large. #495057 is the same darker gray already used
+   for .bg-hybrid-card above (already checked there against a white/light
+   text, comes out around 7.75:1) - still clearly reads as a muted,
+   deliberately generic placeholder icon, just no longer too faint to
+   actually see for someone with low vision. */
+.testimonial-avatar-icon {
+    font-size: 150px;
+    line-height: 1;
+    color: #495057;
+}
+
+@media (max-width: 480px) {
+    /* Narrower phones wrap every testimonial onto many more lines, so they
+       all need more baseline room here. */
+    #carouselExampleControls .carousel-item {
+        min-height: 1040px;
+    }
 }
 
 #surecritic {
-    height: 30px;
+    height: 20px;
     width: auto;
+    max-width: 100px; /* pure insurance - width:auto scales this to whatever
+                          the source file's own proportions are, which isn't
+                          visible from here. A normal small text-logo comes
+                          in well under 100px at 20px tall, so this shouldn't
+                          change how it actually looks - it just guarantees
+                          it can't come out unexpectedly wide if the source
+                          file's real proportions ever turn out to be
+                          unusual. */
+    vertical-align: middle;
+    margin-right: 0.25rem;
+}
+
+/* More Reviews buttons: bootstrap-icon glyphs sit a touch low next to text by
+   default, so nudge them up slightly for visual centering inside the button. */
+.more-reviews .btn i {
+    vertical-align: -0.1em;
 }
 
 
-/* Note the below media query is MIN WITDH */
-@media (min-width: 768px) {
-    .news-input {
-        width: 50%;
+/* The navbar-toggler USED to be position:absolute, centered at "top: 50%"
+   of nav.navbar > .container. That was fine while the menu was closed, but
+   the moment it opened, .container's own height grows to include the whole
+   dropdown list - so "50%" suddenly meant halfway down the WHOLE expanded
+   menu instead of halfway down just the top brand/toggler bar. That's
+   exactly why the "X" appeared floating between About Us and Questions,
+   and didn't seem to respond to clicks (you were actually clicking through
+   to whatever nav-link happened to be underneath it).
+   Removing the absolute positioning fixes both problems at once: back in
+   Bootstrap's normal flex layout, the toggler and brand share only the
+   TOP line (the dropdown list has its own flex-basis:100%, so it always
+   wraps to its own line below, whether the menu is open or not) - so the
+   icon's vertical position and its alignment with the container's own
+   right padding (same edge every other .container-based element on the
+   page uses, including the cards further down) both stay correct and
+   fixed, regardless of whether the dropdown is open. */
+
+/* Note the below media query is MAX NOT MIN WIDTH. 991.98px matches
+   Bootstrap's own navbar-expand-lg breakpoint - this is the whole range
+   where the hamburger button is showing at all, not just below 768px, so
+   one consistent rule covers every width the icon can appear at instead of
+   two different behaviors split across two breakpoints. */
+@media (max-width: 991.98px) {
+
+    /* Breathing room between the bottom of the brand/toggler row and the
+       first link in the dropdown list, so the links don't start flush
+       against it the instant the menu opens. (Older version of this
+       comment referred to a "fixed-top navbar" - the navbar isn't fixed
+       positioned any more, position:sticky further up in this file
+       handles that now. Nothing here needs to change because of that,
+       this padding is just visual spacing inside the open dropdown - it
+       was never actually about the navbar's own positioning.)
+
+       padding-bottom is the same idea, applied after the last link (Contact)
+       instead of before the first one - without it, the list's closing
+       divider line (added above, in the #navmenu .nav-item:last-child rule)
+       sits right up against the navbar's own bottom edge with nothing but
+       its unrelated 1rem of py-3 padding for breathing room. This is
+       scoped to .navbar-collapse rather than added to the navbar's own
+       py-3 class - py-3 lives on the outer <nav> element itself, which is
+       what sets the ordinary navbar's height at every screen size, mobile
+       menu open or not, so changing py-3 directly would make the whole
+       navbar bar taller everywhere, not just add space at the end of the
+       open dropdown. .navbar-collapse is display:none while the menu is
+       closed (that's Bootstrap's own .collapse class), so this padding
+       only ever takes up visible space while the mobile menu is actually
+       open - it adds on top of, not instead of, the 1rem bottom padding
+       already coming from the navbar's own py-3, for a combined 1.8rem
+       gap below the last item when the menu is open.
+
+       UPDATE: that "combined with the navbar's own py-3" part stopped being
+       true once the mobile menu became an overlay instead of pushing the
+       page down (search "CHANGED (requested): this menu used to push" on
+       #navmenu, further down) - the menu is no longer nested inside the
+       navbar's own box, so that outer 1rem doesn't land after it anymore.
+       Measured directly: the real gap dropped to just this rule's own
+       0.8rem, noticeably less balanced than before. padding-bottom below
+       is now set to 1.8rem instead (matching the OLD combined total)
+       specifically to make up for that missing 1rem, not because the
+       original 0.8rem reasoning above changed - adjust this value alone if
+       the gap ever needs to change again, nothing else contributes to it
+       now.
+
+       IMPORTANT: this padding lives on .navbar-nav (the inner <ul>), NOT on
+       .navbar-collapse (the outer #navmenu div) - that used to be reversed,
+       and it was the actual cause of a real, measured bug: tapping "X" to
+       close the mobile menu, the retract-upward animation visibly paused
+       for a moment partway through, then finished on its own. Confirmed
+       directly with frame-by-frame instrumentation (not guessed at): the
+       outer div is what Bootstrap's Collapse JS actually animates, sliding
+       its "height" from full down to 0 over 0.35s - but height:0 on a
+       border-box element can never render shorter than that element's own
+       padding-top + padding-bottom combined (padding can't be squeezed
+       into negative content space, that's just how the CSS box model
+       works). With 1.5rem + 0.8rem = 2.3rem (36.8px) of padding sitting
+       directly on the animated element, the menu could only ever visually
+       shrink down to that leftover 36.8px sliver - measured stopping
+       there right at the ~2/3 point of the 0.35s animation - then it just
+       sat there, frozen, for the remaining third of a second before
+       Bootstrap's own cleanup finally hid it outright. That dead hold is
+       exactly the "pause partway through" that was reported.
+
+       Moving the padding one level in, onto .navbar-nav, fixes this
+       without changing how it looks at all: #navmenu itself (the element
+       actually being animated) now carries zero padding of its own, so
+       its height can genuinely reach 0 with nothing left to floor it -
+       and #navmenu's own overflow:hidden during the collapse (set above,
+       search "#navmenu { overflow-x: hidden")) means .navbar-nav's
+       padding just gets progressively clipped away along with the rest of
+       the menu as the outer box shrinks, the same visual effect as
+       before, just with no incompressible floor stopping it partway. */
+    .navbar-collapse .navbar-nav {
+        padding-top: 1.5rem; /* adjust this value to change that spacing */
+        padding-bottom: 1.8rem; /* adjust this value to change the gap below Contact - bumped up from 0.8rem, see the "UPDATE" note above */
     }
-    /* .navbar-toggler {
-        border: 0 !important; removes bootstrap hamburger menu border 
-    }*/
-}
 
-/* Note the below media query is MAX NOT MIN WITDH */
-@media (max-width: 768px) {
+    /* FIXES A REAL BUG: without this, opening the mobile menu can briefly
+       flash a big blank white area over roughly the right third-to-half of
+       the screen for a second or so, then snap back to normal on its own.
+       Confirmed cause, measured directly rather than guessed at: every nav
+       link below (Home, About Us, Questions, Reviews, Contact) has
+       animate.css's "fadeInRight" entrance animation, which starts each
+       link fully off to the right and slides it into place. Bootstrap
+       hides this whole menu with display:none while it's closed, and CSS
+       animations do not persist through a display:none cycle - so this
+       entrance animation doesn't just play once when the page first loads,
+       it actually REPLAYS FROM SCRATCH every single time the menu is
+       opened, not only the first time.
 
-    /* Position the toggle button at the top right corner */
-    .navbar-toggler {
+       While a link is mid-animation, it's been slid to the right of where
+       it ends up at rest - by as much as its own full width, right after
+       the menu opens, before easing back into place - and with nothing
+       here to contain that, the browser counts that temporary off-screen
+       position as real page content needing space, so the page's overall
+       scrollable width balloons out past the actual screen width for as
+       long as the slowest link (Contact, the last one, with the longest
+       delay) is still animating in. That mismatch between the page's
+       "real" width and the screen's width is exactly what a phone's
+       address-bar-aware browser reacts to by briefly shrinking (zooming
+       out) the whole page to make it fit, which is the blank-white-area
+       symptom - and once every link finishes sliding into place a moment
+       later, the page's width goes back to normal and the browser zooms
+       back in, which is why it "fixes itself" after a second or two
+       without anyone doing anything.
+
+       overflow-x:hidden here clips each link to this menu's own box while
+       it's still sliding in, instead of letting its temporary off-screen
+       position inflate the whole page's width. This doesn't change how
+       the animation looks in any way that matters - a link sliding in
+       from off-screen was always going to spend its first moments outside
+       the visible area either way, this just stops that from being
+       visible/counted anywhere it shouldn't be. Confirmed this doesn't
+       affect the navbar's own sticky positioning either (further up in
+       this file) - this rule is scoped to the dropdown menu itself, not
+       the sticky nav.navbar element.
+
+       CHANGED (requested): this menu used to push the rest of the page
+       down as it opened - Bootstrap's plain default behavior for a
+       ".navbar-collapse" that's still sitting in normal document flow.
+       The properties below turn it into an overlay instead: it now drops
+       down and floats OVER the page (like a panel), and nothing below the
+       navbar moves or jumps when it opens or closes.
+
+       position:absolute takes it out of the page's normal flow entirely,
+       which is what stops it from pushing anything down - its position is
+       measured from the nearest ancestor that isn't position:static, and
+       that's nav.navbar itself (position:sticky, set further up in this
+       file - sticky counts as "not static" for this purpose same as
+       fixed or relative would). top:100% + left:0 + width:100% then
+       places it flush against the bottom edge of that navbar bar,
+       stretching edge-to-edge under it.
+
+       Needs its own solid background now: while this was a normal in-flow
+       block, nav.navbar's own bg-dark background (on the outer <nav>)
+       grew tall enough to cover it automatically. Once it's taken out of
+       flow, nav.navbar's rendered box stops growing to fit it (a nice
+       side effect - the bar itself now stays a constant height whether
+       the menu is open or not), so the menu needs to paint its own
+       background or the page underneath would show through it.
+       var(--bs-dark) is Bootstrap's own dark color variable - the exact
+       same color the navbar's "bg-dark" class already uses, so the menu
+       reads as one continuous panel with the bar above it instead of two
+       different darks. z-index isn't strictly required (a positioned
+       element already paints above the plain, unpositioned brand/toggler
+       next to it regardless of z-index), but it's set explicitly anyway so
+       this doesn't depend on that being true if either of those ever
+       changes.
+
+       The three-part box-shadow at the end is a deliberate echo of this
+       site's own closed-navbar look, requested after noticing the open
+       menu was missing it: when the menu is CLOSED, nav.navbar's own
+       border-bottom (grey, border-secondary, set on the <nav> itself in
+       nav.js) sits directly above .hero-section's border-top (red,
+       #dc3545, in the rule further up this file) - two solid 3px lines
+       stacked right on top of each other, grey then red, marking where the
+       navbar ends and the page begins. Once the menu became an overlay, it
+       paints over that exact spot while open, hiding it - so the same
+       grey-then-red pairing is recreated here at the menu's own bottom
+       edge instead, using only box-shadow, deliberately NOT a real
+       border-bottom.
+
+       That's not a style preference, it matters: this is the exact element
+       Bootstrap's Collapse JS animates "height" on to open/close it, and
+       search "IMPORTANT: this padding lives on .navbar-nav" above for the
+       real bug that happened last time something with actual height (that
+       time, padding) sat directly on this element - a border-box element's
+       rendered height can never shrink below its own border+padding sum,
+       so ANY real border-bottom here, even a thin one, would put a
+       (smaller, but real) floor back under the close animation. box-shadow
+       never adds to an element's box size, inset or not, it's pure paint,
+       so it gets the same visual line with zero risk of that regressing.
+       The grey line is "inset 0 -3px" (a solid-color inset shadow bleeding
+       in from the bottom edge - inset shadows paint inside the box without
+       needing any actual space reserved for them); the red line is a
+       plain, blur-free shadow offset 3px further down, which peeks out
+       just past the box's own edge since nothing is painted over it there;
+       the soft third shadow is the original depth effect from when this
+       was first made into an overlay. Reconfirmed after adding these that
+       the close animation still shrinks smoothly to a real 0, no stall. */
+    #navmenu {
+        overflow-x: hidden;
         position: absolute;
-        top: 1rem;
-        right: 1rem;
-        /*border: 0 !important;  removes bootstrap hamburger menu border */
+        top: 100%;
+        left: 0;
+        width: 100%;
+        z-index: 1;
+        background-color: var(--bs-dark, #212529);
+        box-shadow:
+            inset 0 -3px 0 0 var(--bs-secondary, #6c757d),
+            0 3px 0 0 #dc3545,
+            0 12px 24px -8px rgba(0, 0, 0, 0.45);
     }
 
-    /* Add padding to the top of the hamburger menu collapse content to make space for the fixed-top navbar */
-    .navbar-collapse {
-        padding-top: 1.5rem; /* You can adjust this value based on your specific design */
+    /* Safety net, not something normal use ever hits: caps how tall the
+       open menu can get and lets IT scroll internally past that point,
+       instead of the panel silently running off the bottom of the screen
+       with no way to reach whatever's cut off. Scoped to "#navmenu.show"
+       (Bootstrap's own class for "fully open, animation finished") on
+       purpose, not the plain #navmenu rule above - applying max-height/
+       overflow-y during the open/close ANIMATION itself, while Bootstrap
+       is managing overflow:hidden on its own to make the height
+       transition work, would fight with that and could reintroduce the
+       exact kind of close-animation glitch already tracked down and fixed
+       elsewhere in this file (search "this padding lives on .navbar-nav").
+       At this menu's actual real height (measured: ~341px for all 5 links
+       at rest) this never engages on an ordinary phone in portrait mode -
+       it only matters on unusually short screens, like a phone rotated to
+       landscape. */
+    #navmenu.show {
+        max-height: 75vh;
+        overflow-y: auto;
     }
 
-    /* Sets the Reviews Testimonials Carousel to a fixed height so that it does not move content below it up and down */
-    #carouselExampleControls {
-        height: 700px;
-        overflow: auto;
+    /* Each item now fills the full width of the dropdown and is centered,
+       and the clickable area covers the whole row (not just the icon+text)
+       since the link itself - not just its text - is the full-width block.
+       font-size bumped up from the default 1rem (16px) - easier to read on
+       a phone screen, and a bigger tap target as a side effect. Padding
+       bumped slightly too (0.85rem -> 1rem) to keep the row's proportions
+       balanced now that the text itself takes up a bit more space. */
+    #navmenu .nav-link {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 1rem;
+        font-size: 1.15rem;
+    }
+
+    /* FIXES A REAL BUG, spotted right after the menu became a full-width
+       overlay: hovering (or keyboard-focusing) a link showed a bright red
+       horizontal line stretching across the ENTIRE row, sitting almost
+       exactly where the divider line below it is, easy to mistake for a
+       second, broken, misplaced divider rather than a hover effect.
+
+       Cause: further up this file, "#navmenu .nav-link::after" is a small
+       red underline that grows from 0 width to 100% width on hover/focus -
+       a nice, deliberate touch on the desktop nav above this breakpoint,
+       where each link is a narrow, inline piece of text and "100% of the
+       link's own width" means "100% of that short word." Down here at
+       mobile widths, the rule right above this one makes every link
+       display:block; width:100% - a full-width row - so that exact same
+       "100% of the link's own width" now means the ENTIRE row, edge to
+       edge. The underline rule itself never changed; what changed is that
+       the open menu is now a full-bleed overlay (edge-to-edge, not inset
+       inside .container like it used to be), which is what took this from
+       a narrow, easy-to-miss line to a full-screen-width one impossible
+       not to notice.
+
+       Fix: turn that growing underline off entirely at mobile widths
+       (width stays 0% even on hover/focus) rather than trying to make it
+       narrower - the divider lines between rows (added below) already
+       mark each row clearly, so a second line doing the same job, badly,
+       isn't needed here. The desktop version above this breakpoint is
+       completely untouched. */
+    #navmenu .nav-link:hover::after,
+    #navmenu .nav-link:focus-visible::after {
+        width: 0%;
+    }
+
+    /* Contact carries two icons (phone + envelope) where every other link
+       only has one, so its centered label is visibly wider/bulkier than its
+       siblings and draws extra attention. Padding-right only, on top of the
+       1rem above, narrows the space it centers within on the right side
+       alone - nudging its visual center left instead of touching its
+       actual width or the other four links. (#navmenu #navcon - two ids -
+       needed here to outrank the #navmenu .nav-link rule above.) */
+    #navmenu #navcon {
+        padding-right: 1.9rem;
+    }
+
+    /* Divider lines between each item in the open mobile menu. Without
+       these, all 5 rows read as one continuous block of text with no clear
+       boundary telling you where one tap target ends and the next begins,
+       even though each row's actual clickable area is already plenty tall.
+       border-top on every item, rather than border-bottom, is what avoids
+       a doubled-up line between two adjacent items (each pair would
+       otherwise contribute its own line, stacking into one thicker one) -
+       every item draws only the line above itself, so there's exactly one
+       line between each pair, and a separate rule right below adds the
+       matching line under the very last item, closing off the bottom of
+       the list the same way. A soft, low-opacity white reads as a subtle
+       grey line against this dark navbar without needing a separate grey
+       color value of its own. */
+    #navmenu .nav-item {
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    #navmenu .nav-item:last-child {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     }
 }
 
-/* Note the below media query is MAX NOT MIN WITDH */
+/* THE actual reason the brand icon/text and the hamburger have never quite
+   lined up with Repair/Hybrid/Service's outer edges, at every width from
+   768px up (tablet AND full desktop - this was never just a tablet-only
+   thing, it was just easier to notice on the toggler icon's hard edge than
+   on a row of nav-link text): a plain .container already has 0.75rem of
+   its own built-in edge padding - that's what the navbar's container
+   relies on, since brand/toggler sit directly in it with no row/column
+   layer on top. But the 3-Boxes row turns on gx-md-4 at this same 768px
+   breakpoint, which adds ANOTHER 0.75rem of padding to each card (that's
+   what creates the gap between the 3 cards once they're side by side) -
+   stacking on top of the container's own 0.75rem. So from 768px up, the
+   cards' visible outer edges sit a full 1.5rem in from the true container
+   edge, while the navbar only sits in by the container's default 0.75rem -
+   a real, permanent 0.75rem (12px) gap between them, not a rendering
+   fluke. Setting the navbar container's own padding to that same 1.5rem
+   total closes the gap for good, at every width above 768px, without
+   touching gx-md-4 itself (still needed for the space between the cards). */
+@media (min-width: 768px) {
+    nav.navbar > .container {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+/* THE ACTUAL cause of the navbar sitting way out near the screen edges
+   compared to the Repair/Hybrid/Service cards, below 576px: it was never
+   really about container max-width at all. The Repair/Hybrid/Service row
+   is wrapped in <section class="p-4">, which adds its OWN 1.5rem (24px) of
+   padding on every side, on top of the .container inside it that has its
+   usual 0.75rem (12px). The navbar has no such wrapper - just a plain
+   .container with nothing extra around it - so it only ever gets that
+   0.75rem, never the boxes' extra 1.5rem. That constant 24px gap is what
+   was actually showing up as "way out to the edge" in the screenshot.
+
+   Below 576px specifically, NEITHER container has any max-width active yet
+   (Bootstrap's first container breakpoint doesn't start until exactly
+   576px), so neither one gets any extra auto-margin from being centered
+   in a capped box - the boxes' 24px head start from their section's own
+   p-4 is the ONLY thing separating them from the navbar in this range, and
+   it stays a constant 24px at every width from 0 up to 575.98px (it's
+   fixed padding, not something that scales with the viewport). Above
+   576px, both containers' auto-margins grow together at the same rate and
+   this gap becomes visually irrelevant on its own - which is why this only
+   needed fixing in this one narrow band, and why a previous attempt at
+   fixing this via max-width (rather than this padding) didn't address the
+   real cause.
+
+   The fix: give the navbar's container that same missing 24px directly, as
+   real padding (0.75rem default + 1.5rem to match the boxes' section
+   padding = 2.25rem total), only in the range where it isn't otherwise
+   covered by the ≥768px rule below.
+
+   This used to shrink back down at very narrow widths (a clamp() easing
+   from 2.25rem down to 0.75rem below 380px) to try to leave the brand row
+   more room and avoid wrapping. That's no longer needed - see the
+   .navbar-brand rules further down, which fix the wrapping problem at its
+   actual source instead. With that fixed independently, this padding can
+   just stay the flat 2.25rem that matches the cards, at every width, with
+   no compromise. */
+@media (max-width: 575.98px) {
+    nav.navbar > .container {
+        padding-left: 2.25rem;
+        padding-right: 2.25rem;
+    }
+}
+
+/* Right around 992px - where the horizontal desktop nav first appears -
+   there isn't quite enough room for the logo text plus all five nav items
+   at their normal size, so Bootstrap was dropping the whole nav-links row
+   onto a second line below the logo instead of keeping it inline (visible
+   as the nav "wrapping" anywhere from 992px up to roughly 1200px).
+   clamp() scales the logo and nav-link text (and their padding) down
+   fluidly as the viewport narrows through that range, so everything
+   shrinks a little instead of wrapping - and flex-wrap: nowrap forces it to
+   actually stay on one line rather than falling back to wrapping if it's
+   ever a few pixels short. Below 992px the hamburger takes over completely,
+   so none of this applies there. */
+@media (min-width: 992px) {
+    nav.navbar > .container {
+        flex-wrap: nowrap;
+    }
+
+    .navbar-brand {
+        font-size: clamp(0.85rem, 0.6rem + 0.6vw, 1.25rem);
+        white-space: nowrap;
+    }
+
+    .navbar-nav .nav-link {
+        font-size: clamp(0.75rem, 0.5rem + 0.45vw, 1rem);
+        padding-left: clamp(0.3rem, 0.3vw, 0.75rem);
+        padding-right: clamp(0.3rem, 0.3vw, 0.75rem);
+        white-space: nowrap;
+    }
+}
+
+/* Same wrapping problem shows up again down at the opposite end of the
+   scale. Below ~992px the brand+toggler row isn't sized by us at all - it
+   just uses Bootstrap's plain 1.25rem brand text - which is fine until the
+   phone itself gets narrow enough that "Liberti's Auto Electric" plus both
+   icons plus the toggler button no longer fit on that one flex row. Since
+   nav.navbar > .container is flex-wrap: wrap by default at these widths,
+   the toggler is what gets pushed down to its own line when that happens.
+
+   This used to be "fixed" by shrinking the brand's font-size via clamp()
+   below a chosen breakpoint - 400px at first, then 430px once the padding
+   fix above ate into the row's space, then a recalculated shrink curve
+   once that still went flat too soon and let the wrap back in at 355px,
+   then it came back again at 300px, then 240px. Each round "fixed" the
+   specific width that had just been screenshotted and nothing more,
+   because shrinking the font only ever bought a fixed amount of extra
+   room - and a company name plus two icons plus a hamburger simply doesn't
+   fit in one row at any width, once the row gets narrow enough. There's no
+   clamp() curve that fixes that; it can only ever move the breaking point
+   to a different number.
+
+   The actual fix: stop trying to shrink everything to fit. Keep the two
+   icons and the toggler at a fixed, always-legible/tappable size, and let
+   ONLY the text label - the one part of this row that doesn't need to stay
+   a fixed size to remain usable - flex to fill whatever room is left, and
+   truncate with an ellipsis if there isn't enough. See .navbar-brand,
+   .navbar-brand-icons, and #navlibertis below. That removes the ceiling
+   entirely: there is no width, ever, at which this row can wrap again,
+   because nothing in it is being asked to grow past its available space
+   without somewhere to give.
+
+   IMPORTANT - do NOT "fix" this the way the desktop case above does, by
+   forcing flex-wrap: nowrap on the container. That was tried and broke the
+   OPEN mobile menu at this same width: nav.navbar > .container has three
+   flex children (brand, toggler, and the #navmenu collapse), and it's
+   .navbar-collapse's own flex-basis: 100% - relying on wrapping being
+   allowed - that pushes the whole dropdown list onto its own line below
+   the brand/toggler row in the first place. Force nowrap on the container
+   and that no longer has anywhere to wrap TO, so the open dropdown gets
+   squeezed onto the same row as the brand instead, overlapping it and
+   clipping every link's text off the right edge - exactly what showed up
+   in a screenshot at 400px with the menu open. The fix below doesn't touch
+   the container's own flex-wrap at all, so the collapse's behavior is
+   completely unaffected.
+
+   UPDATE: #navmenu is now position:absolute (search "#navmenu {" further
+   up for the overlay-menu change), which takes it out of this flex layout
+   entirely - .container effectively only has two flex children now
+   (brand, toggler), not three, so the specific wrap-collision this
+   warning describes can't happen anymore either way. Left this comment as
+   history/context rather than deleting it, since forcing nowrap here is
+   still unnecessary either way (the real fix, described above, already
+   guarantees the brand/toggler row itself never needs to wrap) - just
+   noting that the ONE reason nowrap specifically would have been
+   dangerous no longer applies. */
+.navbar-toggler {
+    flex-shrink: 0;
+}
+
+.navbar-brand {
+    display: flex;
+    align-items: center;
+    /* Flex items default to min-width:auto, which means a flex item is
+       never allowed to shrink below its own CONTENT's natural width, no
+       matter how small flex-shrink makes its share of the row - that's
+       the exact, easy-to-miss reason the whole brand block was always
+       forcing the row wider than it had room for instead of compressing,
+       regardless of font-size. min-width:0 removes that floor, so the
+       browser is actually allowed to shrink this block down to whatever
+       space the row has left. */
+    min-width: 0;
+}
+
+.navbar-brand-icons {
+    /* The car + activity icons never shrink or get squeezed - only the
+       text label (below) gives up space when the row is tight. */
+    flex-shrink: 0;
+}
+
+#navlibertis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0; /* same reasoning as .navbar-brand above, one level in -
+                     this is what actually lets the text shrink narrower
+                     than "Liberti's Auto Electric" instead of forcing the
+                     row wider to fit every letter. */
+}
+
+/* Inert everywhere by default - this <br> (in nav.js, between "Liberti's"
+   and "Auto Electric") only does something once the media query below
+   turns it back on. */
+.brand-break {
+    display: none;
+}
+
+/* Not load-bearing for the no-wrap guarantee above (that comes entirely
+   from the ellipsis-truncation rules), just a nicety: on real phones this
+   keeps a bit more of "Liberti's Auto Electric" visible before the
+   ellipsis needs to kick in, rather than relying on truncation for every
+   phone in portrait. */
 @media (max-width: 480px) {
-    /* Sets the Reviews Testimonials Carousel to a fixed height so that it does not move content below it up and down */
-    #carouselExampleControls {
-        height: 1040px;
-        overflow: auto;
+    .navbar-brand {
+        font-size: 1rem;
+    }
+}
+
+/* At 364px and below, rather than let "Liberti's Auto Electric" truncate
+   down to something like "Liberti's Au..." (which the rules above would
+   otherwise do - still perfectly safe, just not the nicest look at this
+   size), deliberately break it into a two-line block instead: "Liberti's"
+   next to the icons, "Auto Electric" wrapping underneath. The two lines
+   come out close to the same length, which reads as a clean, intentional
+   lockup instead of a squeezed one-liner. This is a specific design choice
+   at this exact width, not a fallback for a wrapping bug - the ellipsis
+   rules above already guarantee the row itself can never break regardless
+   of width; this just chooses a nicer-looking way to use that same
+   guarantee once there's this little room.
+
+   (This was briefly moved down to 350px on the assumption that the
+   single-line ellipsis version could safely run a little narrower first -
+   turned out 350-364px still wrapped the toggler even with ellipsis
+   active, so apparently that version has its own floor somewhere in this
+   range too. Not fully diagnosed why - reverted back to 364px, which is
+   the number actually confirmed working end to end, rather than keep
+   guessing at a number that isn't. If this gets revisited, the browser's
+   own dev tools - inspecting #navlibertis's computed width at ~360px, the
+   way the flex-vs-float question got settled a few rounds back - would
+   give a real answer instead of another guess.) */
+@media (max-width: 364px) {
+    /* .navbar-brand is display:flex everywhere above this width - not for
+       alignment, but because that's what lets #navlibertis act as a
+       shrinkable flex child (min-width:0, further up), which is the whole
+       mechanism behind the ellipsis-truncation guarantee at every width
+       from 365px up to 575px: the name shrinks/truncates there instead of
+       wrapping or breaking into two lines. That still needs to stay flex
+       everywhere else - this override only touches the one breakpoint
+       where a two-line lockup is what's wanted instead.
+
+       Turning flex back off JUST here is actually all this needs. Flex
+       locks every child to the same starting column no matter what wraps
+       inside it - that's why "Auto Electric" was lining up under
+       "Liberti's" instead of under the icons: as a flex item, the text
+       block's own left edge always stayed where flex placed it (right
+       after the icon column) on every line it contains, including the
+       wrapped one. Plain, ordinary inline flow doesn't have that behavior
+       at all - each new line just returns to the containing block's own
+       left edge on its own, with nothing extra needed to make that
+       happen. Since that left edge is the same one the icons sit at, this
+       is enough by itself - no float, no hard-coded width to keep in sync
+       with the icons later. */
+    .navbar-brand {
+        display: block;
+    }
+
+    .navbar-brand-icons {
+        margin-right: 0.35rem;
+    }
+
+    .brand-break {
+        display: inline;
+    }
+
+    #navlibertis {
+        /* This first tried to keep white-space:nowrap here (inherited
+           from the base rule further up), reasoning that the <br> above
+           should be the only break allowed, so "Auto Electric" always
+           stays together as one line. That was the actual cause of the
+           hamburger overlapping "Electric" in testing: nowrap means the
+           text is NOT allowed to wrap on its own no matter what, so once
+           "Auto Electric" needed even slightly more room than this row
+           had left, it had nowhere to go but overflow sideways, straight
+           into the toggler - there was no fallback if the numbers were
+           ever this tight.
+
+           white-space:normal here instead means the <br> above still
+           does its job as the PRIMARY, intended break (that's what
+           produces the normal "Liberti's" / "Auto Electric" two-line
+           look), but if this row is ever narrow enough that even "Auto
+           Electric" alone doesn't fit, it can ALSO wrap a second time
+           into "Auto" / "Electric" as a fallback - a slightly taller,
+           three-line brand instead of overlapping text. Worse-looking in
+           that rare case, but never broken - the same trade made for the
+           ellipsis-truncation rule at wider widths further up: prefer a
+           guaranteed graceful fallback over a hard rule that quietly
+           breaks the moment its assumptions are off by a few pixels. */
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.15;
+    }
+}
+
+/* Below 280px, the fixed-size pieces of this row - the two icons, the
+   toggler, and the edge padding that matches the Repair/Hybrid/Service
+   cards - add up to nearly the whole available width on their own, before
+   any text even enters the picture. That's a genuine space shortage, not a
+   layout bug the way the wrapping/overlap issues above were - no wrapping
+   or truncation trick invents width that isn't there. Nothing real loads
+   this page anywhere near this narrow (320px, the original iPhone SE, is
+   the actual floor - this is only reachable by manually dragging a
+   desktop browser's width down), so this is pure extra headroom, not a
+   fix for a real device:
+     - the decorative flash icon next to the car icon is dropped entirely,
+       freeing up its width for the text.
+     - the edge padding that matches the cards eases back down to the
+       plain 0.75rem every other .container has by default (same trade
+       made for the padding clamp earlier in this file: a little
+       edge-alignment given up at a width nothing will ever actually see,
+       in exchange for more breathing room). */
+@media (max-width: 280px) {
+    #navflash {
+        display: none;
+    }
+
+    nav.navbar > .container {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
     }
 }
 
@@ -170,20 +1352,186 @@ body::before {
 
 
 
-/* Nav Bar Hamburger Menu Color change to red */
-/* .navbar-dark .navbar-toggler-icon { 
-background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28220, 53, 69, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
+/* Old attempts at recoloring Bootstrap's built-in SVG-background-image
+   hamburger icon (.navbar-toggler-icon). Replaced below by a real 3-bar
+   custom icon (.hamburger-icon / .hamburger-bar) that animates into an "X"
+   with CSS transitions instead of swapping static SVGs, so these no longer
+   apply to anything - kept only as a record of what was tried.
+.navbar-dark .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28220, 53, 69, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
+};
+.navbar-dark .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%282255, 0, 0, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
+};
+.navbar-dark .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%282255, 255, 255, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
 };
 */
 
-/* Nav Bar Hamburger Menu Color change to brighter red */
-/* .navbar-dark .navbar-toggler-icon { 
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%282255, 0, 0, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
-    };
-*/
+/* Custom hamburger -> X toggle button. Bootstrap's default .navbar-toggler
+   ships a gray focus ring (box-shadow) that shows on tap/click, plus a
+   border - both removed here. The icon itself is now 3 real bar elements
+   instead of a background-image, animated purely with CSS transitions.
+   Bootstrap's collapse JS keeps aria-expanded in sync with the menu's
+   open/closed state on its own, so that attribute alone drives the
+   animation below - no extra JS needed. */
+.navbar-toggler {
+    border: none;
+    box-shadow: none;
+    padding: 0.35rem 0.5rem;
+}
 
-/* Nav Bar Hamburger Menu Color change to brighter white */
- .navbar-dark .navbar-toggler-icon { 
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%282255, 255, 255, 0.95%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e")
-    };
+.navbar-toggler:focus {
+    box-shadow: none;
+    outline: 0;
+}
+
+.hamburger-icon {
+    display: inline-block;
+    position: relative;
+    width: 24px;
+    height: 18px;
+    vertical-align: middle;
+}
+
+.hamburger-bar {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 1px;
+    transition: transform 0.25s ease, opacity 0.2s ease, top 0.25s ease;
+}
+
+.hamburger-bar:nth-child(1) {
+    top: 0;
+}
+
+.hamburger-bar:nth-child(2) {
+    top: 8px;
+}
+
+.hamburger-bar:nth-child(3) {
+    top: 16px;
+}
+
+/* Open state: top and bottom bars rotate into an X, middle bar fades out. */
+.navbar-toggler[aria-expanded="true"] .hamburger-bar:nth-child(1) {
+    top: 8px;
+    transform: rotate(45deg);
+}
+
+.navbar-toggler[aria-expanded="true"] .hamburger-bar:nth-child(2) {
+    opacity: 0;
+}
+
+.navbar-toggler[aria-expanded="true"] .hamburger-bar:nth-child(3) {
+    top: 8px;
+    transform: rotate(-45deg);
+}
+
+/* MailerLite Newsletter Form now lives in a modal (#newsletter in index.html)
+   instead of the #news bar, so it just stacks naturally with plain Bootstrap
+   spacing utilities (mb-3, d-flex, d-grid) in the markup, no custom layout CSS
+   needed here anymore. Only styling the recaptcha needs: centered, and scaled
+   down slightly since the modal is narrow on mobile. */
+#mlb2-6904338 .g-recaptcha {
+    transform: scale(0.9);
+    transform-origin: center top;
+}
+
+/* Footer credit link ("Website by Matt Whitcomb", both pages): after a few
+   rounds of trying different reds and greys specifically for THIS link
+   (see earlier versions of this file if curious - a compliant grey, a
+   lightened red, an outline, back to plain red...), the simpler answer was
+   to just stop giving this one its own separate identity and instead match
+   it to the exact same white/grey/underline treatment the 5 main nav links
+   already use right above in this file (see "Underline hover/focus
+   effect" further up) - consistent with the rest of the site's link
+   language, and it sidesteps the whole red-vs-contrast debate entirely
+   (white text and a light grey hover both clear contrast against this dark
+   footer with plenty of room to spare, no special-casing needed).
+
+   "!important" is required on the color overrides - Bootstrap's own
+   .link-danger class (still the class in the HTML - only the color is
+   being overridden here, not the class itself) ships its own colors with
+   !important already, so a normal, unqualified override would quietly
+   lose to it. Scoped to "footer" so this doesn't touch link-danger
+   anywhere else the class might get used later.
+
+   text-decoration:none removes the browser's own plain, always-on
+   underline - replaced by the animated version below instead, matching
+   the nav links, which don't have a plain underline either.
+   position:relative is what lets that replacement underline (an ::after
+   pseudo-element, positioned absolutely) anchor itself to this link
+   specifically instead of somewhere else on the page. */
+footer .link-danger {
+    color: rgb(255, 255, 255) !important;
+    text-decoration: none;
+    position: relative;
+}
+
+footer .link-danger:hover,
+footer .link-danger:focus-visible {
+    /* Same grey, same shade, as .nav-link:hover further up this file - see
+       that rule for why it's 205,205,205 and not the slightly darker
+       185,185,185 it used to be. */
+    color: rgb(205, 205, 205) !important;
+}
+
+/* The animated underline itself - same left-to-right "grows in on hover"
+   technique, and now the same red accent color, as the 5 main nav links
+   above (search this file for "Underline hover/focus effect" for the
+   fuller explanation of how/why this works). Only real difference left is
+   the thickness: 1px instead of the nav version's 2px, and sitting a few
+   pixels further below the text (bottom: -4px, a negative number, so it's
+   now BELOW the link's own bottom edge instead of hugging just inside it) -
+   both purely because this is a much smaller line of text in a much
+   smaller link, where the nav's own 2px/tighter spacing looked heavy. */
+footer .link-danger::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -4px;
+    width: 0%;
+    height: 1px;
+    background-color: #dc3545;
+    transition: width 0.25s ease;
+}
+
+footer .link-danger:hover::after,
+footer .link-danger:focus-visible::after {
+    width: 100%;
+}
+
+/* "Back to top" up-arrow icon (both pages, bottom-right corner of the
+   footer): plain #dc3545 red, same as everywhere else on the site, no
+   outline/text-shadow on it. It already clears contrast on its own without
+   needing one - it carries Bootstrap's ".h1" size class (40px), well past
+   the 24px cutoff where WCAG relaxes the requirement to 3:1 for large
+   text/icons, and #dc3545 on this dark footer measures 3.41:1, which
+   clears that relaxed bar. (A white, then light-grey, outline was tried
+   here too during an earlier round, alongside the credit link above and
+   the hero's "Specialists" text - pulled back out again on all three, it
+   just didn't look right.)
+
+   display:inline-block plus the transform/transition below give it a
+   small hover animation to actually signal it's clickable, instead of
+   relying purely on cursor:pointer - nudging upward (translateY, a
+   negative number moves it up) doubles as a small visual hint pointing in
+   the same direction the button itself scrolls the page, with a slight
+   scale-up alongside it for a bit of "lift". display:inline-block is
+   needed for the transform to apply predictably - a plain inline element
+   (what an <i> is by default) doesn't reliably support being moved/scaled
+   like this the way an inline-block or block element does. */
+footer .bi-arrow-up-circle {
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+footer a:hover .bi-arrow-up-circle,
+footer a:focus-visible .bi-arrow-up-circle {
+    transform: translateY(-4px) scale(1.1);
+}
 
