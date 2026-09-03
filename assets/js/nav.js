@@ -15,12 +15,69 @@
 // Every internal link below points to "./index.html#..." rather than a
 // bare "#...". That's deliberate: Home, Questions, Reviews, and Contact
 // only exist as sections on the homepage - about.html (and any future
-// page) has none of them. A link to "./index.html#questions" still works
-// correctly from index.html itself: since that resolves to the exact same
-// page it's already on, the browser just treats it as an ordinary
-// same-page jump, not a reload. That's what makes ONE shared version of
-// this nav correct on every page at once, with no per-page variations
-// needed.
+// page) has none of them. A link to "./index.html#questions-section"
+// still works correctly from index.html itself: since that resolves to
+// the exact same page it's already on, the browser just treats it as an
+// ordinary same-page jump, not a reload. That's what makes ONE shared
+// version of this nav correct on every page at once, with no per-page
+// variations needed.
+//
+// Reported bug (Sept 2026), worse on Safari/iPhone: reloading the page,
+// or a fresh visitor opening a shared link to it, sometimes lands
+// scrolled near the bottom of the page instead of the top or the intended
+// section. Root cause: clicking a nav link used to rewrite the address
+// bar's #hash via history.replaceState (further down this file, in
+// scrollToTarget - search "This used to also call" for that removal) so
+// the URL would reflect whichever section you'd last scrolled to. That
+// meant an ordinary visit (click Contact, look around, hit refresh later)
+// left something like ".../index.html#contact" sitting in the address
+// bar, and browsers try to act on whatever #hash is in the URL on every
+// load - reliably jumping back to that section on every later plain
+// refresh, which reads as "refreshing sends me to the bottom of the page"
+// even though the code is doing exactly what that hash says. That
+// replaceState call has been removed for exactly this reason.
+//
+// Two more defensive fixes below, both run immediately, before anything
+// else in this file (this script sits right at the very top of <body>,
+// specifically so it runs before the browser gets a chance to act on the
+// page's own initial #hash) - these matter for the cases that CAN still
+// legitimately put a #hash in the URL (a visitor typing/sharing a direct
+// link like ".../index.html#contact", or clicking one of the plain anchor
+// buttons this file doesn't intercept, e.g. "Read More in FAQ's" further
+// down the page, which the browser's own native anchor handling still
+// updates the address bar for):
+//
+// 1) history.scrollRestoration = 'manual' stops the browser from silently
+//    trying to restore whatever scroll position it remembers from last
+//    time this exact history entry was open, instead of scrolling based
+//    on the URL's actual current #hash (or lack of one). Safari especially
+//    has been inconsistent about which remembered offset belongs to which
+//    hash state when the URL changes without a new history entry.
+//
+// 2) Taking manual control of the INITIAL #hash scroll instead of
+//    trusting each browser's native "jump to the fragment on load"
+//    behavior. That native behavior can fire before this very script has
+//    replaced the empty #site-nav placeholder with the real, much taller
+//    sticky navbar just below - meaning the browser doesn't yet know how
+//    tall the navbar actually is when it decides where "the top of that
+//    section" is, and unlike a click (handled by this file's own code
+//    further down, which already benefits from scroll-padding-top in
+//    style.css), it doesn't get a second attempt once the navbar and any
+//    images below it settle into their real, final layout.
+//
+//    Fix: immediately strip the hash from the visible URL before the
+//    browser gets a chance to act on it, remember it, then scroll to it
+//    ourselves - instantly, not smoothly, matching how a browser's own
+//    native initial-load jump behaves - once the page (including images)
+//    has actually finished loading and settled. See the "window.load"
+//    listener further down this file for the second half of this.
+if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+}
+var initialHash = window.location.hash ? window.location.hash.slice(1) : null;
+if (initialHash) {
+    history.replaceState(null, '', window.location.pathname + window.location.search);
+}
 //
 // The <nav> below does NOT carry Bootstrap's "fixed-top" class, even
 // though a normal Bootstrap navbar usually does - that class sets
@@ -51,7 +108,7 @@ const SITE_NAV_HTML = `
             <a href="./index.html" class="navbar-brand" aria-label="Liberti's Auto Electric - Home">
                 <span class="navbar-brand-icons"><i id="nav_car_in" class="bi bi-car-front-fill text-light animate__animated animate__lightSpeedInLeft" aria-hidden="true"></i><i id="navflash" class="bi bi-activity text-danger animate__animated animate__flash" aria-hidden="true"></i></span><span id="navlibertis" class="animate__animated animate__fadeIn">Liberti's <br class="brand-break">Auto Electric</span>
             </a>
- 
+
             <button
                 class="navbar-toggler"
                 type="button"
@@ -67,7 +124,7 @@ const SITE_NAV_HTML = `
                     <span class="hamburger-bar"></span>
                 </span>
             </button>
- 
+
             <div class="collapse navbar-collapse" id="navmenu">
                 <!-- aria-hidden="true" added to every icon below: each one
                      sits right next to its own visible text label ("Home",
@@ -75,7 +132,7 @@ const SITE_NAV_HTML = `
                      icon too (e.g. "house door icon, Home") is just adding
                      noise, not information - the icon doesn't say anything
                      the text next to it doesn't already say on its own.
- 
+
                      Icons use the "nav-icon" class (styled in style.css)
                      instead of Bootstrap's text-white-50 they used to carry -
                      that gave them a translucent white, unrelated to any
@@ -92,7 +149,7 @@ const SITE_NAV_HTML = `
                         <a href="./index.html#about" id="navabout" class="nav-link animate__animated animate__fadeInRight"><i class="bi bi-info-circle nav-icon" aria-hidden="true">&#160;</i> About Us</a>
                     </li>
                     <li class="nav-item">
-                        <a href="./index.html#questions" id="navquest" class="nav-link animate__animated animate__fadeInRight"><i class="bi bi-question-circle nav-icon" aria-hidden="true">&#160;</i> Questions</a>
+                        <a href="./index.html#questions-section" id="navquest" class="nav-link animate__animated animate__fadeInRight"><i class="bi bi-question-circle nav-icon" aria-hidden="true">&#160;</i> Questions</a>
                     </li>
                     <li class="nav-item">
                         <a href="./index.html#reviews" id="navrev" class="nav-link animate__animated animate__fadeInRight"><i class="bi bi-people-fill nav-icon" aria-hidden="true">&#160;</i> Reviews</a>
@@ -105,7 +162,7 @@ const SITE_NAV_HTML = `
         </div>
     </nav>
 `;
- 
+
 // No DOMContentLoaded wait needed here: this script tag is placed directly
 // after <div id="site-nav"></div> in the page, so by the time this line
 // runs, the browser has already parsed and inserted that placeholder -
@@ -130,7 +187,7 @@ const SITE_NAV_HTML = `
 // sticky navbar all the room it needs to stay pinned through the whole
 // scroll, top to bottom.
 document.getElementById('site-nav').outerHTML = SITE_NAV_HTML;
- 
+
 // Auto-close the mobile dropdown once a nav link is clicked, instead of
 // making someone tap the "X"/hamburger themselves afterward. Bootstrap's
 // own Collapse API (from bootstrap.bundle.min.js) handles this rather than
@@ -195,18 +252,28 @@ if (navmenuEl) {
                 return;
             }
             event.preventDefault();
- 
+
             function scrollToTarget() {
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                // Keeps the address bar in sync with which section is
-                // showing (matching what a normal anchor-link click does),
-                // without using location.hash directly - setting
-                // location.hash triggers the browser's OWN jump-to-section
-                // behavior too, which would fire a second, redundant scroll
-                // right on top of the scrollIntoView call above.
-                history.replaceState(null, '', '#' + hash);
+                // This used to also call history.replaceState(null, '', '#'
+                // + hash) here, to keep the address bar in sync with which
+                // section was showing. Removed (Sept 2026): that's exactly
+                // what caused the "refresh randomly/reliably lands scrolled
+                // near the bottom" bug - clicking around the nav left a
+                // #hash sitting in the address bar (e.g. "#contact"), and
+                // a later plain page refresh with that hash still present
+                // triggers this file's own initial-hash-scroll logic further
+                // up, or the browser's own native one, EVERY time, not just
+                // when a visitor actually meant to deep-link there. Losing
+                // "the address bar reflects whichever section you last
+                // scrolled to via the nav" is a minor cosmetic downgrade,
+                // not a functional one - direct #hash links (typed, shared,
+                // or from a plain anchor like the "Read More in FAQ's"
+                // buttons, which aren't handled by this file at all) still
+                // work correctly, they just don't linger in the address bar
+                // afterward waiting to cause this on a later plain refresh.
             }
- 
+
             if (navmenuEl.classList.contains('show')) {
                 navmenuEl.addEventListener('hidden.bs.collapse', function () {
                     // The setTimeout here (even at 0ms) is doing real work,
@@ -236,7 +303,7 @@ if (navmenuEl) {
         });
     });
 }
- 
+
 // Reported symptom (real phone, not desktop testing): right after tapping
 // the hamburger to open the mobile menu, part of the right side of the
 // screen briefly goes blank white for a second or two, then the page
@@ -273,7 +340,7 @@ navmenuEl.addEventListener('shown.bs.collapse', function () {
     window.scrollBy(0, 1);
     window.scrollBy(0, -1);
 });
- 
+
 // Reported symptom: tapping the "X" to close the mobile menu, the
 // retract-upward animation visibly paused for a moment partway through,
 // then finished on its own. This was FIRST guessed to be the same class of
@@ -306,3 +373,28 @@ navmenuEl.addEventListener('hidden.bs.collapse', function () {
     window.scrollBy(0, 1);
     window.scrollBy(0, -1);
 });
+
+// Second half of the initial-#hash fix at the very top of this file: that
+// code already stripped any #hash the page was opened with out of the
+// visible URL before the browser could act on it. Now that the whole page
+// (images included) has actually finished loading, scroll to it ourselves
+// - deliberately, once, with the layout fully settled - instead of
+// leaving it to each browser's own native (and here, unreliable) jump-to-
+// fragment-on-load behavior. behavior: 'auto' (instant), not 'smooth', to
+// match what a normal initial-load anchor jump looks like - this is a
+// fresh page load, not a click a visitor just made, so an animated scroll
+// here would just read as slow rather than as feedback for anything.
+// scroll-padding-top (style.css) still applies to scrollIntoView() the
+// same as it does for the click-based version of this further up, so this
+// lands with the section's own heading clear of the sticky navbar too.
+if (initialHash) {
+    window.addEventListener('load', function () {
+        window.setTimeout(function () {
+            var target = document.getElementById(initialHash);
+            if (target) {
+                target.scrollIntoView({ behavior: 'auto', block: 'start' });
+            }
+            history.replaceState(null, '', '#' + initialHash);
+        }, 50);
+    });
+}
