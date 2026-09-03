@@ -3,13 +3,106 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Tells the browser to start the connection (DNS + TLS handshake) to
+         these two CDN origins as early as possible, before it's even
+         finished parsing the rest of <head> - normally that connection
+         setup wouldn't start until the browser reaches the actual <link>
+         tag pointing at one of these origins further down. jsdelivr is used
+         for Bootstrap's own CSS/JS (below and near the bottom of the page),
+         cdnjs for animate.css, so paying that one-time connection cost
+         sooner shortens Lighthouse's "network dependency tree" critical
+         path a little without changing what loads or in what order.
+         crossorigin used to be required on the jsdelivr preconnect because
+         bootstrap-icons.css (also served from jsdelivr at the time) pulled
+         in a font file fetched in CORS mode - now that the icon font is
+         self-hosted (see the bootstrap-icons <link> further down), nothing
+         fetched from jsdelivr is a CORS request anymore, so the attribute
+         was dropped. A preconnect opened as crossorigin only helps requests
+         that actually use CORS - kept on a plain stylesheet/script origin
+         like this one now would just open a connection nothing reuses. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <!-- Without this, iPhones/iPads auto-detect anything shaped like a phone
+         number anywhere on the page and silently turn it into a tap-to-call
+         link styled in the browser's own default blue - completely
+         overriding whatever color the page's own CSS says, even though the
+         text was never a real <a> tag to begin with. That's why the number
+         showed up bright blue over the hero image even though nothing in
+         this stylesheet asked for blue. Turning this off hands control of
+         both the look AND the tap-to-call behavior back to real <a
+         href="tel:..."> links below, which now exist for every phone number
+         on the page. -->
+    <meta name="format-detection" content="telephone=no">
+    <!-- Search engines show this under the page's title/link in results -
+         there was nothing here before, which usually means Google just
+         picks a random sentence off the page instead, which isn't always
+         one that actually explains what the business does. -->
+    <meta name="description" content="Liberti's Auto Electric is a family-owned, ASE Certified auto repair shop in Milpitas, CA, serving customers since 1971 with expert diagnostics, hybrid service, and electrical repair.">
+    <!-- Lighthouse's "LCP request discovery" flag, explained: the hero photo
+         below is set as a CSS background-image (see .hero-section in
+         style.css), not a plain <img> tag. A browser's preload scanner reads
+         straight through the raw HTML looking for things to start
+         downloading immediately, including this preload hint - but it can't
+         see INTO a CSS file that way, so a background-image normally isn't
+         discovered until the browser has already downloaded style.css AND
+         finished parsing it AND found the rule. Since this photo is almost
+         certainly the page's Largest Contentful Paint element (the biggest
+         thing painted early), that whole extra wait was pushing LCP later
+         than it needed to be. This preload tag tells the browser about the
+         image directly from the HTML, so it starts fetching in parallel with
+         the CSS instead of waiting on it - same image, same file, just
+         discovered sooner. fetchpriority="high" additionally tells the
+         browser to prioritize this download over lower-priority ones (like
+         icon fonts) competing for bandwidth at the same time. -->
+    <link rel="preload" as="image" href="./assets/img/shopbomberclose.jpg" fetchpriority="high">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.3.0/font/bootstrap-icons.css"> -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"> 
-    <link href='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.css' rel='stylesheet' />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/> 
+    <!-- Bootstrap Icons used to be loaded from jsdelivr
+         (bootstrap-icons@1.10.5, same version as now). Moved to a local
+         copy under assets/vendor/bootstrap-icons/ instead: it's one fewer
+         third-party origin the page depends on to render its icons at all
+         (if jsdelivr ever has an outage or gets blocked by a visitor's
+         network, the icons still work), and it drops the separate
+         DNS+TLS+request round trip that CDN file cost beyond the
+         preconnect. The npm package's own bootstrap-icons.css was copied in
+         unmodified, along with its two font files (woff2/woff), so the
+         icon glyphs themselves are identical to the CDN version - same
+         1.10.5 release, just served from this site's own origin now.
+         animate.css only supplies classes for the entrance animations (nav
+         links sliding in, hero text fading in, etc.) and still comes from
+         cdnjs - it wasn't part of this change. Neither file is needed to
+         render the page's actual layout, so both keep the same
+         preload+onload swap: a plain <link rel="stylesheet"> blocks the
+         browser from painting ANYTHING until it's fully downloaded and
+         parsed, which is what Lighthouse's "render-blocking requests" flag
+         was pointing at. Loading each as a low-priority "preload" resource
+         instead, then flipping it to an active stylesheet onload, lets the
+         page paint its layout, text, and buttons immediately; icons pop in
+         and animations become active a moment later instead of gating the
+         very first paint. The <noscript> fallback is a plain blocking link
+         that only matters if JavaScript is disabled (rare, but onload
+         obviously can't fire without JS) - without it, those visitors would
+         never get these styles at all. Bootstrap's own core CSS above is
+         deliberately left as a normal blocking stylesheet - nearly
+         everything visible on this page (the grid, buttons, nav, spacing)
+         depends on it, so deferring that one would cause a much more
+         noticeable flash of unstyled content instead of this small, mostly
+         invisible delay on icons/animations. -->
+    <link rel="preload" href="./assets/vendor/bootstrap-icons/bootstrap-icons.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="./assets/vendor/bootstrap-icons/bootstrap-icons.css"></noscript>
+    <!-- Mapbox's CSS/JS (removed below too, at the bottom of the page) used
+         to be loaded here but were never actually used anywhere on the
+         site - the live map further down the page has always been a plain
+         Google Maps iframe embed (search "gmap-embed" in this file), not a
+         Mapbox map. That left a genuinely unused, fairly large JS+CSS
+         library downloading and parsing on every single page visit for no
+         reason - removing it is a pure win with zero loss of functionality. -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"></noscript>
     <link rel="stylesheet" href="./assets/css/style.css">
-    <link rel="icon" href="./assets/img/favicon_tools.png" type="image/gif" sizes="32x32">
+    <!-- type was "image/gif" here even though the file is a .png - browsers
+         mostly ignored the mismatch and used the file anyway, but it's a
+         genuine incorrect-metadata bug, not just a style choice. -->
+    <link rel="icon" href="./assets/img/favicon_tools.png" type="image/png" sizes="32x32">
     <title>Liberti's Auto Electric</title>
     <!-- MailerLite Universal -->
     <script>
@@ -22,150 +115,128 @@
 <!-- End MailerLite Universal -->
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg bg-dark navbar-dark py-3 fixed-top border-bottom border-secondary">
-        <div class="container">
-            <!-- <div> -->
-                <!-- <i class="bi bi-tools text-light"></i> -->
-                <!-- <span><i class="bi bi-car-front-fill text-light"></i><i class="bi bi-activity text-danger"></i></span> -->
-            <!-- </div>  -->
-            <a href="#" class="navbar-brand">
-                <span><i id="nav_car_in" class="bi bi-car-front-fill text-light animate__animated animate__lightSpeedInLeft"></i><i id="navflash" class="bi bi-activity text-danger animate__animated animate__flash"></i></span><span id="navlibertis" class="animate__animated animate__fadeIn">Liberti's Auto Electric</span>
-            </a> 
+    <!-- Navbar: filled in immediately by assets/js/nav.js, right below.
+         Edit the nav in ONE place (that file) instead of copy-pasting it
+         into every page - this is what keeps about.html (and any future
+         page) from drifting out of sync with this one again. -->
+    <div id="site-nav"></div>
+    <script src="./assets/js/nav.js"></script>
 
-            <button 
-                class="navbar-toggler" 
-                type="button" 
-                data-bs-toggle="collapse" 
-                data-bs-target="#navmenu"
-            >
-                <span class="navbar-toggler-icon"></span>
-            </button>
+    <!-- <main> added around everything between the nav and the footer - a screen
+         reader user has a "skip to main content" / "jump to landmark" shortcut that
+         only works if a page actually has a <main> landmark to jump to. Wrapping
+         is purely semantic (main has no layout/styling of its own), so this
+         doesn't change how anything looks. -->
+    <main>
 
-            <div class="collapse navbar-collapse" id="navmenu">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a href="#about" id="navabout" class="nav-link  text-end me-3 animate__animated animate__fadeInRight"><i class="bi bi-info-circle text-white-50">&#160;</i> About Us</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#questions" id="navquest" class="nav-link  text-end me-3 animate__animated animate__fadeInRight"><i class="bi bi-question-circle text-white-50">&#160;</i> Questions</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#reviews" id="navrev" class="nav-link  text-end me-3 animate__animated animate__fadeInRight"><i class="bi bi-people-fill text-white-50">&#160;</i> Reviews</a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#contact" id="navcon" class="nav-link  text-end me-3 me-md-0 animate__animated animate__fadeInRight"><i class="bi bi-telephone text-white-50"></i>&#160;<i class="bi bi-envelope-at text-white-50">&#160;</i> Contact</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Hero Image and Header Text Section -->
-    <section class="bg-dark text-light   p-4 p-lg-4 pt-lg-5 text-center text-sm-start">
-        <div class="container">
-          <div class="d-sm-flex align-items-center justify-content-between flex-column flex-sm-row mt-4">
-            <div>
-              <!-- <img src="./assets/img/oldlogo.jpeg" alt="Avatar Logo" style="width:500px;">  -->
-              <h1 id="herolibertis" class="animate__animated animate__zoomIn"><span class="text-white"><i class="bi bi-tools text-light"></i> Liberti's Auto Electric </h1></span> 
-              <h2 id="herospecialists" class="animate__animated animate__zoomIn"><span class="text-white"> Automotive </span> <span class="text-danger"> Specialists </span></h2>
-              <p id="heroblurb" class="lead my-4 animate__animated animate__fadeIn">
-                From classics, to modern gas/diesel, hybrid, and modified performance vehicles, we service them all and stay current with new technologies and the training necessary to work on them. Give us a call today at (408) 263-3339.
-              </p>
-              <button id="msgbtn" class="btn btn-danger btn-lg animate__animated animate__bounceIn" 
-                data-bs-toggle="modal" 
-                data-bs-target="#message"
-              >
-                Send Us a Message
-              </button>
-            </div>
-
-            <!-- Original version before making two seperate sizes for image on small vs large screens 
-            <img class="img-fluid w-50 w-sm-auto mt-5 mt-sm-0" src="./assets/img/shopbomberclose.jpg" alt="pictures of cars"> -->
-
-            <!-- new way to do it 
-            <img class="img-fluid w-100 d-block mx-auto d-sm-none mt-5 mt-sm-0" src="./assets/img/shopbomberclose.jpg" alt="pictures of cars for small screens">
-            <img class="img-fluid w-50 d-none d-sm-block mt-5 mt-sm-0" src="./assets/img/shopbomberclose.jpg" alt="pictures of cars for large screens">
-            -->
-            <!-- newest way to achieve same result but simplified and more responsive -->
-            <div id="heropic" class="col-sm-6 text-center mt-5 mt-sm-0 border border-0 border-secondary-subtle animate__animated animate__fadeIn">
-                <img class="img-fluid w-100" src="./assets/img/shopbomberclose.jpg" alt="pictures of cars for small screens">
-            </div>
-            <!-- end newest -->
-          </div>
-        </div>
-      </section>
-      
-
-    <!-- Newsletter Section -->
-    <section id="news" class="bg-secondary text-light p-4 animate__animated animate__slideInLeft">
-        <div class="container">
-            <div class="d-md-flex justify-content-between align-items-center">
-                <h3 class="mb-3 mb-md-0">Sign Up For Our Newsletter</h3>
-                <!-- <div class="ml-embedded" data-form="7uo0ai"></div> -->
-                <div class="input-group news-input">
-                    <input 
-                        type="text" 
-                        class="form-control" 
-                        placeholder="Enter Email" 
+    <!-- Hero Section: full-width background image with a dark gradient overlay so
+         text stays readable over any part of the photo, at any screen size. Replaces
+         the old 50/50 flex-column-vs-row layout, which broke at the sm breakpoint
+         (576px) because there wasn't enough room for a text column and an image
+         column side by side that early. -->
+    <section id="hero" class="text-light hero-section">
+        <div class="hero-overlay">
+            <div class="container">
+                <div class="hero-content">
+                    <h1 id="herolibertis" class="animate__animated animate__zoomIn"><i class="bi bi-tools text-light"></i> Liberti's Auto Electric</h1>
+                    <h2 id="herospecialists" class="animate__animated animate__zoomIn"><span class="text-white">Automotive</span> <span class="text-danger specialists-chip">Specialists</span></h2>
+                    <p id="heroblurb" class="lead my-4 animate__animated animate__fadeIn">
+                        From classics, to modern gas/diesel, hybrid, and modified performance vehicles, we service them all and stay current with new technologies and the training necessary to work on them. Give us a call today at <a href="tel:4082633339" class="tel-link">(408) 263-3339</a>.
+                    </p>
+                    <button id="msgbtn" class="btn btn-danger btn-lg animate__animated animate__bounceIn"
+                        data-bs-toggle="modal"
+                        data-bs-target="#messageModal"
                     >
-                    <button 
-                        class="btn btn-dark btn-lg" 
-                        type="button" 
-                    >
-                        Button
+                        Send Us a Message
                     </button>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- Newsletter Section: a plain gray band right under the hero, just for
+         this one button - the white-on-photo version didn't read well
+         sitting on top of the hero image, so this brings back a dedicated
+         strip for it instead (similar to how it originally lived in its own
+         area before moving into the hero). Back to plain btn-danger like
+         every other button on the page (no custom color/animation, no
+         btn-lg) - sized like the "Read More in FAQ's" buttons in the 3
+         cards instead of the bigger "Send Us a Message" button, so it's
+         still clearly a red CTA but a smaller, less dominant one. -->
+    <section class="newsletter-section text-center p-4">
+        <div class="container">
+            <button id="newsletterbtn" class="btn btn-danger animate__animated animate__lightSpeedInLeft" data-bs-toggle="modal" data-bs-target="#newsletter">
+                <i class="bi bi-envelope-at"></i> Sign Up For Our Newsletter
+            </button>
+        </div>
+    </section>
+
     <!-- 3 Boxes Section -->
+    <!-- gx-0 gx-md-4: Bootstrap's grid gutter pads each column on BOTH sides,
+         on top of the .container's own padding - fine when the 3 cards sit
+         side by side (>=768px, where that gutter is what separates them),
+         but with only 1 column per row below 768px (col-md stacks them),
+         that same horizontal gutter just adds extra unused inset on a
+         single full-width card, making it visibly narrower than the navbar
+         content above (which is a bare .container with no row/col gutter
+         layered on top). Zeroing the horizontal gutter until md brings this
+         back in line with the navbar (and everything else using a bare
+         .container) exactly where it's actually stacked to one column, gy-4
+         still keeps vertical breathing room between the stacked cards. -->
     <section class="p-4">
         <div class="container">
-            <div class="row text-center g-4">
+            <div class="row text-center gy-4 gx-0 gx-md-4">
                 <!-- Item 1 -->
+                <!-- h-100 + d-flex flex-column (CSS in style.css) on the card, plus
+                     flex-grow-1 on the paragraph and mt-auto on the button below,
+                     makes all 3 cards match height and keeps every "Read More in
+                     FAQ's" button on the same bottom line regardless of how much
+                     text is above it. -->
                 <div id="box1" class="col-md animate__animated animate__fadeInUp">
-                    <div class="card bg-dark text-light">
+                    <div class="card bg-dark text-light h-100">
                         <div class="card-body text-center">
                             <div class="h1 mb-3">
                                 <i class="bi bi-wrench"></i>
                             </div>
                             <h3 class="card-title mb-3">Repair</h3>
-                            <p class="card-text">
-                                Check engine light on? Hearing a noise while driving? Intermittent electrical issues? We can help! Expert diagnostics, quality parts, industry leading warranty. 
+                            <p class="card-text flex-grow-1">
+                                Check engine light on? Hearing a noise while driving? Intermittent electrical issues? We can help! Expert diagnostics, quality parts, industry leading warranty.
                             </p>
-                            <a href="#questions" class="btn btn-danger">Read More in FAQ's</a>
+                            <a href="#questions-section" class="btn btn-danger mt-auto">Read More in FAQ's</a>
                         </div>
                     </div>
                 </div>
                 <!-- Item 2 -->
+                <!-- bg-hybrid-card (style.css) instead of Bootstrap's stock bg-secondary
+                     - keeps this one visually grey/distinct from box1/box3 like before,
+                     but at a shade (#495057) that actually passes WCAG contrast with
+                     white text (~7.75:1) instead of falling just short (~4.44:1). -->
                 <div id="box2" class="col-md animate__animated animate__fadeInUp">
-                    <div class="card bg-secondary text-light">
+                    <div class="card bg-hybrid-card text-light h-100">
                         <div class="card-body text-center">
                             <div class="h1 mb-3">
                                 <i class="bi bi-ev-front-fill"></i>
                             </div>
                             <h3 class="card-title mb-3">Hybrid</h3>
-                            <p class="card-text">
-                                Yes! We work on Hybrid Vehicles. Special procedures and equipment need to be followed when dealing with high voltage systems. 
+                            <p class="card-text flex-grow-1">
+                                Yes! We work on Hybrid Vehicles. Special procedures and equipment need to be followed when dealing with high voltage systems.
                             </p>
-                            <a href="#questions" class="btn btn-danger">Read More in FAQ's</a>
+                            <a href="#questions-section" class="btn btn-danger mt-auto">Read More in FAQ's</a>
                         </div>
                     </div>
                 </div>
                 <!-- Item 3 -->
                 <div id="box3" class="col-md animate__animated animate__fadeInUp">
-                    <div class="card bg-dark text-light">
+                    <div class="card bg-dark text-light h-100">
                         <div class="card-body text-center">
                             <div class="h1 mb-3">
                                 <i class="bi bi-funnel-fill"></i>
                             </div>
                             <h3 class="card-title mb-3">Service</h3>
-                            <p class="card-text">
-                                Alignments / Tune-ups / Batteries / Brakes / Cooling System & Radiator / Shocks & Suspension / Tires / Transmission / A/C Service / Brakes / Belts & Hoses / 
+                            <p class="card-text flex-grow-1">
+                                Alignments / Tune-ups / Batteries / Brakes / Cooling System & Radiator / Shocks & Suspension / Tires / Transmission / A/C Service / Brakes / Belts & Hoses /
                             </p>
-                            <a href="#questions" class="btn btn-danger">Read More in FAQ's</a>
+                            <a href="#questions-section" class="btn btn-danger mt-auto">Read More in FAQ's</a>
                         </div>
                     </div>
                 </div>
@@ -176,11 +247,36 @@
     <!-- About Section -->
     <section id="about" class="p-4">
         <div class="container">
-            <div class="row align-items-center justify-content-between">
-                <div class="col-md">
-                    <img src="./assets/img/s13redrear.jpg" class="img-fluid border border-1 border-secondary-subtle" alt="picture of shop and car">
+            <!-- Side-by-side at md (768px) left each column only ~350px wide in
+                 the 768-991px tablet range - enough room for the grid to go
+                 50/50, but not enough for a 3-paragraph text block next to a
+                 full photo, so the two sides ended up mismatched heights and
+                 cramped text right in that in-between range. Bumping the
+                 breakpoint to lg (992px) keeps this stacked (full-width image,
+                 then full-width text - the version that already looks right)
+                 through that whole tablet range, and only splits 50/50 once
+                 there's actually enough width per side for it to look
+                 balanced. That also lines up with navbar-expand-lg, so the
+                 nav and this section switch to "desktop" layout together. -->
+            <!-- scroll-reveal-group on the row (not scroll-reveal on each column):
+                 the image and text columns are different heights, so with
+                 align-items-center each one's top edge sits at a slightly
+                 different point - watched separately, they crossed the
+                 trigger line at slightly different scroll positions and
+                 visibly played one after the other instead of together.
+                 Watching the row as a single unit fires both at once. -->
+            <div class="row align-items-center justify-content-between scroll-reveal-group">
+                <div class="col-lg scroll-reveal-item" data-aos="fadeInLeft">
+                    <!-- Real file is 1000x664 (checked directly, not guessed this time).
+                         Safe to add as plain attributes here specifically because
+                         img-fluid's own CSS rule explicitly sets height:auto - unlike
+                         w-100 (the carousel's class), which only touches width and
+                         leaves height to fall back to whatever these attributes say
+                         verbatim. Confirmed the difference actually matters with a
+                         quick isolated test before adding these. -->
+                    <img loading="lazy" src="./assets/img/s13redrear.jpg" class="img-fluid border border-1 border-secondary-subtle" width="1000" height="664" alt="picture of shop and car">
                 </div>
-                <div class="col-md p-4">
+                <div class="col-lg p-4 scroll-reveal-item" data-aos="fadeInRight">
                     <h2>About Us</h2>
                     <p class="lead">
                         We have been in business at our original location in Milpitas, CA since 1971! 
@@ -191,8 +287,17 @@
                     <p>
                         We pride ourselves on being auto electrical specialists, well-versed in employing the latest diagnostic strategies, cutting-edge technology, and advanced tools. Say goodbye to the "guess and check" parts-changer repairs at other shops. Our skilled technicians use their expertise to pinpoint the problem with precision, ensuring that we address the root cause and fix it right the first time. 
                     </p>
-                    <a href="./about.html" class="btn btn-light mt-3">
-                        <i class="bi bi-chevron-right"></i> Read More
+                    <!-- aria-label fixed the Accessibility "Links have discernible name"
+                         check (that's why Accessibility scores 100) - but Lighthouse's
+                         separate SEO "Links do not have descriptive text" check looks at
+                         the link's actual VISIBLE text, not its aria-label, so a bare
+                         "Read More" still failed that one even with the label in place.
+                         Same fix already used elsewhere on this page (the FAQ buttons say
+                         "Read More in FAQ's", not bare "Read More" - that's why those were
+                         never flagged): put the distinguishing context directly in the
+                         visible text instead of relying on aria-label alone. -->
+                    <a href="./about.html" class="btn btn-dark mt-3" aria-label="Read more about Liberti's Auto Electric">
+                        <i class="bi bi-chevron-right"></i> Read More About Us
                     </a>
                 </div>
             </div>
@@ -200,11 +305,19 @@
     </section>
 
     <!-- ASE Certified Section -->
-    <section id="about" class="p-5 bg-dark text-light mb-5">
+    <section id="ase-certified" class="p-5 bg-dark text-light mb-5">
         <div class="container">
-            <div class="row align-items-center justify-content-between">
-                
-                <div class="col-md-6 p-3 order-last order-md-first">
+            <!-- Same reasoning as the About Us section above: 50/50 at md
+                 (768px) got cramped in the tablet range, so this now stays
+                 stacked until lg (992px), matching the navbar's own
+                 desktop breakpoint. -->
+            <!-- scroll-reveal-group, same reasoning as About Us above - text and
+                 logo columns are different heights, so watching the row as one
+                 unit is what makes both reveal together instead of one after
+                 the other. -->
+            <div class="row align-items-center justify-content-between scroll-reveal-group">
+
+                <div class="col-lg-6 p-3 order-last order-lg-first scroll-reveal-item" data-aos="fadeInLeft">
                     <h2>ASE Certified</h2>
                     <p class="lead">
                         We are ASE Certified Master Automotive Technicians who go through extensive training to keep up to date on the latest vehicles and technologies. 
@@ -212,13 +325,18 @@
                     <p>
                         "ASE, is short for the National Institute for Automotive Service Excellence. In addition to passing ASE certification tests, automotive technicians must have two years of on-the-job-training or one year of on-the-job-training and a two-year degree in automotive repair to qualify for certification. To remain ASE Certified, professionals must retest every five years to keep up with ever-advancing automotive technology." - ASE.com 
                     </p>
-                        <a href="https://www.ase.com/about-ase/" target="_blank" class="btn btn-light mt-3">
-                            <i class="bi bi-chevron-right"></i> Read More
+                        <!-- Same fix as the "Read More" link in the About Us section above,
+                             for the same reason - the SEO "descriptive link text" check
+                             looks at this visible text, not the aria-label. -->
+                        <a href="https://www.ase.com/about-ase/" target="_blank" class="btn btn-light mt-3" aria-label="Read more about ASE certification on ase.com">
+                            <i class="bi bi-chevron-right"></i> Read More About ASE
                         </a>
                 </div>
-                <!-- <div class="col-md-6 d-flex justify-content-md-end align-items-center "> -->
-                    <div class="col-md-6 d-flex justify-content-center align-items-center ">
-                    <img src="./assets/img/ASE-Logo.png" class="img-fluid my-3" alt="A.S.E. seal logo">
+                <!-- <div class="col-lg-6 d-flex justify-content-lg-end align-items-center "> -->
+                    <div class="col-lg-6 d-flex justify-content-center align-items-center scroll-reveal-item" data-aos="fadeInRight">
+                    <!-- Real file is 376x375 - same img-fluid reasoning as the About Us
+                         photo above, safe to add plain attributes here. -->
+                    <img loading="lazy" src="./assets/img/ASE-Logo.png" class="img-fluid my-3" width="376" height="375" alt="A.S.E. seal logo">
                 </div>
             </div>
         </div>
@@ -226,48 +344,110 @@
 
     <!-- Brake & Lamp AAA Section -->
     <section>
-        <!-- Official Approved Repair Text -->
-        <div class="row">
-            <div class="col">
-                <h3 class="text-center display-4 my-4">Official Approved Repair</h3>
-            </div>
-        </div>
-  
-      <!-- AAA and Brake & Lamp Logo with Text cards -->
-        <div class="row justify-content-center mb-5">
-
-            <div class="col-10 col-md-4">
-            <!-- First card AAA -->
-                <div class="card border-0">
-                <img src="./assets/img/aaaauto.png" class="card-img-top p-2" alt="tripple A approved shop">
-                    <div class="card-body text-center">
-                        <h5 class="card-title text-center">What does AAA's AAR mean?</h5>
-                        <p class="card-text text-center">Becoming an AAR or "Approved Auto Repair" shop by AAA is not easy. If a shop wants an AAA approval designation, then an AAA service specialist must inspect the shop for cleanliness, proper tools, adequate technical training of employees, and the appropriate technician certifications. They will also make sure that the shop uses modern equipment and meets other criteria before allowing a shop to carry the AAR designation. Click the button below to go to the AAA website and see our reviews!</p>
-                        <a href="https://www.aaa.com/autorepair/shop/libertis-auto-electric-1461" class="btn btn-primary" target="_blank">Local AAR Shops</a>
-                    </div>
-                </div>
-            </div>
-        
-            <div class="col-10 col-md-4">
-            <!-- Second card Brake & Lamp -->
-                <div class="card border-0">
-                <img src="./assets/img/brakenlamp2.png" class="card-img-top p-3" alt="official brake and lamp station">
-                    <div class="card-body text-center">
-                        <h5 class="card-title text-center">Official California Brake & Lamp Adjusting Station</h5>
-                        <p class="card-text text-center">A brake and lamp inspection is required by the California State law to make sure that a vehicle is safe to drive and operates properly on the road. Vehicle title transfers may also require a brake and lamp inspection after an accident, theft, or citation.</p>
-                        <a href="https://www.bar.ca.gov/pdf/lamp-handbook-9.3.15.pdf" target="_blank" class="btn btn-primary m-3">Lamp Handbook</a>
-                        <a href="https://www.bar.ca.gov/pdf/brake-adjuster-handbook.pdf" target="_blank" class="btn btn-primary m-3">Brake Handbook</a>               
-                    </div>
+        <!-- This section's rows weren't wrapped in a .container like every other
+             section on the site, so their negative row margins ran straight to
+             the section's own edge with nothing to add the padding back - the
+             heading (a full-width col) sat flush against the viewport on
+             mobile. The two cards below it look fine because col-10 already
+             leaves a gap on each side, but the fix that matches the rest of
+             the site (and works at every breakpoint, not just this one) is
+             the same container every other section already uses. -->
+        <div class="container">
+            <!-- Official Approved Repair Text -->
+            <!-- fadeIn, not fadeInUp: this section is tall enough (heading +
+                 a row with two cards) that fadeInUp's own start-position
+                 offset (100% of its own height) put it visibly overlapping
+                 the FAQ section below while sliding up into place. fadeIn
+                 (opacity only, no movement) can't overlap anything since
+                 nothing changes position. -->
+            <div class="row">
+                <div class="col scroll-reveal" data-aos="fadeIn">
+                    <h3 class="text-center display-4 my-4">Official Approved Repair</h3>
                 </div>
             </div>
 
+            <!-- AAA and Brake & Lamp Logo with Text cards -->
+            <div class="row justify-content-center mb-5 scroll-reveal" data-aos="fadeIn">
+
+                <div class="col-10 col-md-4">
+                <!-- First card AAA -->
+                    <div class="card border-0">
+                    <!-- Real file is 550x200. Not given plain width/height attributes -
+                         card-img-top only sets width:100% (confirmed in your own
+                         DevTools screenshot), no height:auto, so it has the exact same
+                         risk the carousel photos did: a raw height attribute here would
+                         become an independently fixed pixel value that doesn't scale
+                         with the card's actual width, distorting the logo. Sized instead
+                         via CSS (aspect-ratio + object-fit on #aaa-logo in style.css),
+                         same fix as the carousel, just contain instead of cover so the
+                         logo can't get cropped. -->
+                    <img loading="lazy" id="aaa-logo" src="./assets/img/aaaauto.png" class="card-img-top p-2" alt="tripple A approved shop">
+                        <div class="card-body text-center">
+                            <!-- Was h5 - the heading right above this section
+                                 ("Official Approved Repair") is an h3, so
+                                 jumping straight to h5 skipped right over
+                                 h4. Screen reader users often jump page to
+                                 page by heading LEVEL alone, and a level
+                                 that's just missing reads as broken/confusing
+                                 navigation, even though nothing here looks
+                                 wrong visually. h4 is the correct next step
+                                 down from that h3. -->
+                            <h4 class="card-title text-center">What does AAA's AAR mean?</h4>
+                            <p class="card-text text-center">Becoming an AAR or "Approved Auto Repair" shop by AAA is not easy. If a shop wants an AAA approval designation, then an AAA service specialist must inspect the shop for cleanliness, proper tools, adequate technical training of employees, and the appropriate technician certifications. They will also make sure that the shop uses modern equipment and meets other criteria before allowing a shop to carry the AAR designation. Click the button below to go to the AAA website and see our reviews!</p>
+                            <a href="https://www.aaa.com/autorepair/shop/libertis-auto-electric-1461" class="btn btn-primary" target="_blank">Local AAR Shops</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-10 col-md-4">
+                <!-- Second card Brake & Lamp -->
+                    <div class="card border-0">
+                    <!-- Converted from PNG to JPEG and resized to 2000px wide (Sept 2026
+                         image-optimization pass) - same reasoning and same fix as the AAA
+                         logo above (card-img-top, not img-fluid, so sized via CSS
+                         instead of attributes). -->
+                    <img loading="lazy" id="brakenlamp-logo" src="./assets/img/brakenlamp2.jpg" class="card-img-top p-3" alt="official brake and lamp station">
+                        <div class="card-body text-center">
+                            <!-- Same fix and reasoning as the AAA card's
+                                 heading right above this one - h4, not h5,
+                                 to stay one level below the "Official
+                                 Approved Repair" h3 instead of skipping h4
+                                 entirely. -->
+                            <h4 class="card-title text-center">Official California Brake & Lamp Adjusting Station</h4>
+                            <p class="card-text text-center">A brake and lamp inspection is required by the California State law to make sure that a vehicle is safe to drive and operates properly on the road. Vehicle title transfers may also require a brake and lamp inspection after an accident, theft, or citation.</p>
+                            <!-- visually-hidden span: sighted users already see this
+                                 opens a PDF from the button's context, but a screen
+                                 reader has no visual cue for that at all - without
+                                 something like this it just announces "Lamp Handbook,
+                                 link" and someone on a slow connection or a screen
+                                 reader has no warning it's a PDF (bigger download,
+                                 opens differently) before clicking it. -->
+                            <a href="https://www.bar.ca.gov/pdf/lamp-handbook-9.3.15.pdf" target="_blank" class="btn btn-primary m-3">Lamp Handbook<span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
+                            <a href="https://www.bar.ca.gov/pdf/brake-adjuster-handbook.pdf" target="_blank" class="btn btn-primary m-3">Brake Handbook<span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
     </section>
 
     <!-- Question Accordian Section-->
-    <section id="questions" class="p-3 mb-5">
+    <!-- This section's id used to be "questions" - the same id already used
+         by the accordion div just inside it (id="questions", the one every
+         accordion item's data-bs-parent="#questions" is meant to point at).
+         Two elements sharing an id is invalid HTML; it happened not to
+         visibly break anything here (the section fully contains the
+         accordion, so Bootstrap's "close other open items" logic still
+         found the right elements either way), but it's exactly the kind of
+         thing that stops being harmless the moment something else gets
+         added inside this section later. Renamed this outer section to
+         "questions-section" and updated the three "Read More in FAQ's"
+         buttons above that scroll to it; left the accordion's own
+         id="questions" and every data-bs-parent="#questions" untouched. -->
+    <section id="questions-section" class="p-3 mb-5">
         <div class="container">
-            <h2 class="text-center mb-4">Frequently Asked Questions</h2>
+            <h2 class="text-center mb-4 scroll-reveal" data-aos="fadeIn">Frequently Asked Questions</h2>
             <!-- Did not end up using and instead to manage spacing between icons and question text used "me-2" in the individual icon tags 
             /* Add spacing between the icons and the text for better looking small screens */
             <style>
@@ -276,7 +456,7 @@
             }
             </style>
             -->
-            <div class="accordion accordion-flush" id="questions">
+            <div class="accordion accordion-flush scroll-reveal" data-aos="fadeIn" id="questions">
                 <!-- Item 1 -->
                 <div class="accordion-item">
                   <h2 class="accordion-header">
@@ -369,7 +549,7 @@
                       class="accordion-collapse collapse" 
                       data-bs-parent="#questions"
                     >
-                      <div class="accordion-body">We currently only schedule appointments over the phone. Please give us a call at (408) 263-3339.                       
+                      <div class="accordion-body">We currently only schedule appointments over the phone. Please give us a call at <a href="tel:4082633339" class="tel-link">(408) 263-3339</a>.
                       </div>
                     </div>
                 </div>
@@ -453,10 +633,12 @@
     <!-- Our Customers Section -->
     <section id="reviews" class="p-3 bg-white">
         <div class="container">
-            <h2 class="text-center text-dark">What Customers Have To Say</h2>
-            <p class="lead text-center text-dark mb-4">
-                Read Our Actual Customer Reviews
-            </p>
+            <div class="scroll-reveal" data-aos="fadeIn">
+                <h2 class="text-center text-dark">What Customers Have To Say</h2>
+                <p class="lead text-center text-dark mb-4">
+                    Read Our Actual Customer Reviews
+                </p>
+            </div>
             <div class="row g-4">
 
                 <!-- Carousel Testimonial wrapper -->
@@ -473,73 +655,83 @@
             
                         <!-- item 1 -->
                         <div class="carousel-item active">
-                            <img class="rounded-circle shadow-1-strong mb-4"
-                            src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(10).webp" alt="avatar"
-                            style="width: 150px;" />
-                            <div class="row d-flex justify-content-center">
-                                <div class="col-lg-8">
-                                    <h5 class="mb-3">Maria Kate</h5>
-                                    <p>2009 Audi TT</p>
-                                    <p class="text-muted">
-                                    <i class="bi bi-quote text-danger fs-4"></i>
-                                    "One thing everyone needs is an honest auto repair shop, and from my experience working with Steve at Liberti's, I have found mine for as long as I live in Milpitas. Auto repair and service is a huge hassle, and for most of us it usually comes down to "can I trust these guys?" My situation was a great example of "yes I do!". What he did do was all the right services at a fair price. He's been fixing cars for 20+ years and really cares about building trust with his customers." 
-                                    </p>
+                            <div class="carousel-slide-inner scroll-reveal" data-aos="fadeIn">
+                                <i class="bi bi-person-circle testimonial-avatar-icon mb-4"></i>
+                                <div class="row d-flex justify-content-center">
+                                    <div class="col-10 col-lg-8">
+                                        <p class="fw-semibold text-danger mb-1">Verified Customer</p>
+                                        <p>2009 Audi TT</p>
+                                        <p class="text-muted">
+                                        <i class="bi bi-quote text-danger fs-4"></i>
+                                        "One thing everyone needs is an honest auto repair shop, and from my experience working with Steve at Liberti's, I have found mine for as long as I live in Milpitas. Auto repair and service is a huge hassle, and for most of us it usually comes down to "can I trust these guys?" My situation was a great example of "yes I do!". What he did do was all the right services at a fair price. He's been fixing cars for 20+ years and really cares about building trust with his customers."
+                                        </p>
+                                    </div>
                                 </div>
+                                <ul class="list-unstyled d-flex justify-content-center text-warning mb-0">
+                                <li><i class="bi bi-star-fill text-danger"></i></li>
+                                <li><i class="bi bi-star-fill text-danger"></i></li>
+                                <li><i class="bi bi-star-fill text-danger"></i></li>
+                                <li><i class="bi bi-star-fill text-danger"></i></li>
+                                <li><i class="bi bi-star-fill text-danger"></i></li>
+                                </ul>
                             </div>
-                            <ul class="list-unstyled d-flex justify-content-center text-warning mb-0">
-                            <li><i class="bi bi-star-fill text-danger"></i></li>
-                            <li><i class="bi bi-star-fill text-danger"></i></li>
-                            <li><i class="bi bi-star-fill text-danger"></i></li>
-                            <li><i class="bi bi-star-fill text-danger"></i></li>
-                            <li><i class="bi bi-star-fill text-danger"></i></li>
-                            </ul>
                         </div>
 
-                        <!-- item 2 -->
+                        <!-- item 2 - no scroll-reveal here (or item 3 below): items 2/3
+                             only ever become visible via Bootstrap's own slide
+                             transition, not by scrolling. Since they start hidden
+                             (display:none) and .scroll-reveal starts at opacity:0,
+                             the moment Bootstrap slides one in, its content would
+                             still be invisible until the observer catches up and
+                             fires - a brief blank slide, then a delayed fade on
+                             top of a transition that already finished. Only item
+                             1 (the one actually visible when you first scroll to
+                             this section) gets the reveal. -->
                         <div class="carousel-item">
-                            <img class="rounded-circle shadow-1-strong mb-4"
-                            src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(32).webp" alt="avatar"
-                            style="width: 150px;" />
-                            <div class="row d-flex justify-content-center">
-                                <div class="col-lg-8">
-                                    <h5 class="mb-3">John Doe</h5>
-                                    <p>1996 Acura Integra</p>
-                                    <p class="text-muted">
-                                    <i class="bi bi-quote text-danger fs-4"></i>
-                                    I had a parasitic drain on my battery. Replaced the battery and had several different mechanics search for the problem. The problem continued. No one could find it. I know of Liberti's outstanding reputation, but hesitated because you get what you pay for. After a few months screwing around, I took it to "John" at Liberti's, and he found the problem the next day. It wasn't easy or readily apparent, but he found it relatively quickly, and fixed it immediately. With hindsight, I should have taken my car there immediately. Would have saved an extra $500. BTW, these mechanics are very respectful and patient. I truly appreciated being treated so kindly. Thanks, John!
-                                    </p>
+                            <div class="carousel-slide-inner">
+                                <i class="bi bi-person-circle testimonial-avatar-icon mb-4"></i>
+                                <div class="row d-flex justify-content-center">
+                                    <div class="col-10 col-lg-8">
+                                        <p class="fw-semibold text-danger mb-1">Verified Customer</p>
+                                        <p>1996 Acura Integra</p>
+                                        <p class="text-muted">
+                                        <i class="bi bi-quote text-danger fs-4"></i>
+                                        I had a parasitic drain on my battery. Replaced the battery and had several different mechanics search for the problem. The problem continued. No one could find it. I know of Liberti's outstanding reputation, but hesitated because you get what you pay for. After a few months screwing around, I took it to "John" at Liberti's, and he found the problem the next day. It wasn't easy or readily apparent, but he found it relatively quickly, and fixed it immediately. With hindsight, I should have taken my car there immediately. Would have saved an extra $500. BTW, these mechanics are very respectful and patient. I truly appreciated being treated so kindly. Thanks, John!
+                                        </p>
+                                    </div>
                                 </div>
+                                <ul class="list-unstyled d-flex justify-content-center text-warning mb-0">
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                </ul>
                             </div>
-                            <ul class="list-unstyled d-flex justify-content-center text-warning mb-0">
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                            </ul>
                         </div>
 
                         <!-- item 3 -->
                         <div class="carousel-item">
-                            <img class="rounded-circle shadow-1-strong mb-4"
-                            src="https://mdbcdn.b-cdn.net/img/Photos/Avatars/img%20(1).webp" alt="avatar" style="width: 150px;" />
-                            <div class="row d-flex justify-content-center">
-                                <div class="col-lg-8">
-                                    <h5 class="mb-3">Anna Deynah</h5>
-                                    <p>2002 Land Cruiser</p>
-                                    <p class="text-muted">
-                                    <i class="bi bi-quote text-danger fs-4"></i>
-                                    Had the opp to chat with Steve about air conditioning for my old school land cruiser. The guy is like an encyclopedia and willing to share knowledge. Takes the time to explain what's going on and different approaches, doesn't try to rush you off. Kudos!
-                                    </p>
+                            <div class="carousel-slide-inner">
+                                <i class="bi bi-person-circle testimonial-avatar-icon mb-4"></i>
+                                <div class="row d-flex justify-content-center">
+                                    <div class="col-10 col-lg-8">
+                                        <p class="fw-semibold text-danger mb-1">Verified Customer</p>
+                                        <p>2002 Land Cruiser</p>
+                                        <p class="text-muted">
+                                        <i class="bi bi-quote text-danger fs-4"></i>
+                                        Had the opp to chat with Steve about air conditioning for my old school land cruiser. The guy is like an encyclopedia and willing to share knowledge. Takes the time to explain what's going on and different approaches, doesn't try to rush you off. Kudos!
+                                        </p>
+                                    </div>
                                 </div>
+                                <ul class="list-unstyled d-flex justify-content-center text-warning mb-0">
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                    <li><i class="bi bi-star-fill text-danger"></i></li>
+                                </ul>
                             </div>
-                            <ul class="list-unstyled d-flex justify-content-center text-warning mb-0">
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                                <li><i class="bi bi-star-fill text-danger"></i></li>
-                            </ul>
                         </div>
 
                         <!-- item 4 not yet added... -->
@@ -561,116 +753,217 @@
                 <!-- End Testimonial Carousel wrapper --> 
             </div>
             <!-- More Reviews Links -->
-            <div class="text-center p-2 ">
-                <div class="d-block">
-                More Reviews:&#160;
-                </div>
-                <div class="d-inline-block">
+            <div class="text-center p-2 more-reviews scroll-reveal" data-aos="fadeIn">
+                <!-- Was a plain <p> styled bold to look like a section label -
+                     visually that reads as a heading, but a screen reader had
+                     no way to jump straight to it or even tell it apart from
+                     an ordinary paragraph, since nothing in the markup
+                     actually said "heading" here. Real h3 now (one level
+                     under this section's own "What Customers Have To Say"
+                     h2) - fs-6 resets its size back to plain body text, since
+                     browsers make headings big by default and this should
+                     keep looking exactly like it did before, just be a real
+                     heading underneath. -->
+                <h3 class="mb-3 fw-semibold fs-6">More Reviews</h3>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
                     <!-- yelp -->
-                    <a href="https://www.yelp.com/biz/libertis-auto-electric-milpitas?osq=Libertis+Auto+Electric" target="_blank"><i class="bi bi-yelp text-danger"></i>Yelp
-                    </a> 
-                    &#160;
-                </div>
-                <div class="d-inline-block">
+                    <a href="https://www.yelp.com/biz/libertis-auto-electric-milpitas?osq=Libertis+Auto+Electric" target="_blank" class="btn btn-outline-danger">
+                        <i class="bi bi-yelp"></i> Yelp
+                    </a>
                     <!-- surecritic -->
-                    <a href="https://www.surecritic.com/reviews/libertis-auto-electric" target="_blank"><img id="surecritic" src="./assets/img/surecriticlogo.png" alt="sure critic logo" class="" >SureCritic
-                    </a> 
-                    &#160;
-                </div>
-                <div>
+                    <a href="https://www.surecritic.com/reviews/libertis-auto-electric" target="_blank" class="btn btn-outline-danger">
+                        <!-- Real file is 374x354. This one was already fully safe either
+                             way - #surecritic in style.css sets an explicit height:20px
+                             and width:auto, which fully controls the rendered size
+                             regardless of these attributes - but Lighthouse's check
+                             still wants them present, so adding the real values. -->
+                        <img loading="lazy" id="surecritic" src="./assets/img/surecriticlogo.png" width="374" height="354" alt="sure critic logo"> SureCritic
+                    </a>
                     <!-- google -->
-                    <a href="https://www.google.com/maps/place/Liberti's+Auto+Electric/@37.4091517,-121.9046149,17z/data=!4m8!3m7!1s0x808fc94b479fc527:0xfee1e4a9596f4246!8m2!3d37.4091475!4d-121.90204!9m1!1b1!16s%2Fg%2F11h0ltgpc?entry=ttu" target="_blank"><i class="bi bi-google"></i> Google Reviews 
-                    </a> 
+                    <a href="https://www.google.com/maps/place/Liberti's+Auto+Electric/@37.4091517,-121.9046149,17z/data=!4m8!3m7!1s0x808fc94b479fc527:0xfee1e4a9596f4246!8m2!3d37.4091475!4d-121.90204!9m1!1b1!16s%2Fg%2F11h0ltgpc?entry=ttu" target="_blank" class="btn btn-outline-danger">
+                        <i class="bi bi-google"></i> Google Reviews
+                    </a>
                 </div>
-
             </div>
         </div>
     </section>
         
 
     <!-- Check Out Our Work Slides Section -->
-    <section>
-      <div class="row bg-dark ">
-        <div class="col">
-          <h5 class="text-white text-center my-2 p-3">Check out some of our work!</h5>
+    <!-- bg-dark lives on the section itself, as one continuous background,
+         rather than on the two rows below individually - two separate
+         elements each carrying their own bg-dark, stacked directly on top
+         of each other, was leaving a faint seam where they met (each row
+         has its own slightly-independent negative margins from Bootstrap's
+         grid, so their edges don't always land on the exact same pixel). -->
+    <section class="bg-dark">
+      <!-- This .container is required, not just for consistent spacing -
+           every .row below it needs one. Bootstrap's .row class applies a
+           small negative left/right margin (meant to cancel out the
+           padding a .container puts on its .col children), and normally a
+           .container's own padding absorbs that margin so it never
+           becomes visible. Without a .container here, that negative
+           margin had nowhere to be absorbed, and it bled the row a few
+           pixels past the edge of the page - causing a small but real
+           sideways scroll on every page load, at every screen size, even
+           though it wasn't obvious just from looking at it. Every other
+           section on this page already wraps its rows in a .container
+           (see the Contact & Map section right below this one) - this
+           section had simply been missed. -->
+      <div class="container">
+      <div class="row">
+        <div class="col scroll-reveal" data-aos="fadeIn">
+          <!-- Was h5 - every other major section on this page (About Us, ASE
+               Certified, Frequently Asked Questions, What Customers Have To
+               Say, Contact Info) uses h2 for its own section title, so this
+               one jumping straight to h5 both broke the heading-level order
+               (h2 to h5 skips h3 and h4) and put this section's title one
+               level "smaller" than every other section around it for no
+               real reason. h2 here matches the rest and fixes the skip. -->
+          <h2 class="text-white text-center my-2 p-3">Check out some of our work!</h2>
         </div>
       </div>
       <!-- Team Pictures Carousel -->
-        <div class="row bg-dark  pb-5">
+        <div class="row pb-5">
             <div class="col">
                 <!-- Carousel Component -->
+                <!-- NOTE (unresolved): Chrome's "Lazy-loaded images should have
+                     explicit dimensions" issue flags every <img> below - without a
+                     width/height (or a CSS aspect-ratio), the browser can't reserve
+                     space for a lazily-loaded image before it downloads, so the page
+                     jumps when it pops in (a layout shift, what CLS measures).
+                     A first attempt added width="1600" height="1200" to each one,
+                     going by the folder these photos live in
+                     (assets/img/carousel_1600x1200/) - but that folder name doesn't
+                     actually match every photo's real size: at least one confirmed
+                     visibly stretched/squished once the browser started forcing that
+                     4:3 box onto it (a taller-than-4:3 or wider-than-4:3 photo gets
+                     its pixels non-uniformly scaled to fit, since <img> has no
+                     object-fit by default). Reverted rather than ship a distorted
+                     carousel. Fixing this properly needs either (a) each photo's
+                     real width/height so every <img> gets its own correct values, or
+                     (b) a design change instead - give the carousel a fixed CSS
+                     height with object-fit: cover so mismatched source photos get
+                     cropped to a consistent size instead of stretched, which also
+                     sidesteps needing to know each one's exact resolution. Left
+                     unset for now rather than guess again. -->
                 <div id="carouselExampleAutoplaying" class="carousel slide col-10 col-md-8 mx-auto" data-bs-ride="carousel" data-bs-interval="5000" data-bs-touch="true">
 
                     <div class="carousel-inner">
-                        
+
                         <div class="carousel-item active">
-                            <img src="./assets/img/carousel_1600x1200/chevelle_red_nofront.jpeg" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/chevelle_red_nofront.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/hyundai_headgasket_on.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/hyundai_headgasket_on.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/hyundai_cams.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/hyundai_cams.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/jonathanthumbs.jpg" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/jonathanthumbs.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/ka24denointman.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/ka24denointman.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/wrx_enginebay.jpeg" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/wrx_enginebay.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/s13wrx.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/s13wrx.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/skylark_engine2.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/skylark_engine2.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/skylark_engine_goingin1.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/skylark_engine_goingin1.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/skylark_engine_goingin2.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/skylark_engine_goingin2.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/skylark_engine_goingin3.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/skylark_engine_goingin3.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/skylark_enginebay2.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/skylark_enginebay2.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/skylark_nohood2.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/skylark_nohood2.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/bluemustang.jpg" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/bluemustang.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/mustang_red_front.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/mustang_red_front.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/mustang_red_engine.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/mustang_red_engine.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/s14hoodoff.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/s14hoodoff.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/yellowhotrod2.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/yellowhotrod2.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/belair_side.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/belair_side.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/bellair_front.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/bellair_front.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/corvette_steeringwheel.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/corvette_steeringwheel.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/valvetrain.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/valvetrain.jpg" class="d-block w-100" alt="...">
                         </div>
                         <div class="carousel-item">
-                            <img src="./assets/img/carousel_1600x1200/valvetrain2.JPG" class="d-block w-100" alt="...">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/valvetrain2.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/s14rear.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/hybrid_engine_hanging_edit.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/ej20center.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/shopflowers.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <!-- These 3 originally came from a separate carousel_1907x1200 folder
+                             (since removed) - cropped to match this carousel's 1600x1200 aspect
+                             ratio and moved into this folder under these filenames. -->
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/ka24declose.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/mattpressarmup.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/mattskylarkspraypaint.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/audittcamgear.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/bombersignclose.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/frs.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/hyundai_head_cams.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/shopbomber.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/skylark_enginebay_paint.jpg" class="d-block w-100" alt="...">
+                        </div>
+                        <div class="carousel-item">
+                            <img loading="lazy" src="./assets/img/carousel_1600x1200/toolcartsred.jpg" class="d-block w-100" alt="...">
                         </div>
 
                     </div>
@@ -686,14 +979,18 @@
 
                 </div>
             </div>
-        </div>            
+        </div>
+      </div>
     </section>
 
     <!-- Contact & Map Section -->
     <section id="contact" class="p-4">
         <div class="container">
-            <div class="row g-3">
-                <div class="col-md">
+            <!-- scroll-reveal-group, same reasoning as About Us/ASE Certified -
+                 the contact list and the map are different heights, so watching
+                 the row as one unit is what reveals both together. -->
+            <div class="row g-3 scroll-reveal-group">
+                <div class="col-md scroll-reveal-item" data-aos="fadeInLeft">
                     <h2 class="text-center mb-4 border-bottom border-secondary-subtle pb-2">Contact Info</h2>
                     <ul class="list-group list-group-flush lead">
                         <li class="list-group-item">
@@ -703,18 +1000,30 @@
                             <i class="bi bi-clock"></i> &#160<span class="fw-bold">Hours:</span> M-F 8am-5pm 
                         </li>
                         <li class="list-group-item">
-                            <i class="bi bi-telephone"></i> &#160<span class="fw-bold">Phone:</span> (408) 263-3339
+                            <i class="bi bi-telephone"></i> &#160<span class="fw-bold">Phone:</span> <a href="tel:4082633339" class="tel-link">(408) 263-3339</a>
                         </li>
+                        <!-- text-break (Bootstrap utility) on just the address itself: an
+                             email has no spaces for the browser to wrap at by default, so
+                             it's treated as one unbreakable ~240px-wide word at this font
+                             size - on narrow phones the available width is less than that,
+                             and rather than shrink, the line overflows its container and
+                             drags the whole page a bit wider than the viewport (that's very
+                             likely the "white sliver" that grows as the screen narrows).
+                             text-break explicitly allows this one string to break wherever
+                             it needs to instead of forcing overflow. -->
                         <li class="list-group-item">
-                            <i class="bi bi-envelope-at"></i> &#160<span class="fw-bold">Email:</span> libertisauto@gmail.com
+                            <i class="bi bi-envelope-at"></i> &#160<span class="fw-bold">Email:</span> <span class="text-break">libertisauto@gmail.com</span>
                         </li>
                     </ul>
                 </div>
-                <div class="col-md">
+                <div class="col-md scroll-reveal-item" data-aos="fadeInRight">
                     <div class="col-lg-12">
                         <div class="lc-block">
                             <div class="ratio ratio-16x9 border border-1 border-secondary-subtle" lc-helper="gmap-embed">
-                                <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3169.1828948938223!2d-121.90461492369536!3d37.40915173313649!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fc94b479fc527%3A0xfee1e4a9596f4246!2sLiberti&#39;s%20Auto%20Electric!5e0!3m2!1sen!2sus!4v1690823281461!5m2!1sen!2sus" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                                <!-- title added: without one, a screen reader announces this as
+                                     an unlabeled "frame" with no way to know it's a map, let
+                                     alone a map of what. -->
+                                <iframe title="Google Maps location of Liberti's Auto Electric" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3169.1828948938223!2d-121.90461492369536!3d37.40915173313649!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x808fc94b479fc527%3A0xfee1e4a9596f4246!2sLiberti&#39;s%20Auto%20Electric!5e0!3m2!1sen!2sus!4v1690823281461!5m2!1sen!2sus" width="600" height="450" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                             </div>
                         </div><!-- /lc-block -->
                     </div>
@@ -723,82 +1032,241 @@
         </div>
     </section>
 
+    </main>
+
     <!-- Footer -->
     <footer class="p-3 bg-dark text-white text-center position-relative">
         <div class="container">
-            <p class="lead">Copyright &copy; 2023 <br><i class="bi bi-car-front-fill"></i><i class="bi bi-activity text-danger"></i>Liberti's Auto Electric</p>
-            <p>Website by <br>
-                <a href="https://mkwtek.github.io/portfolio/" target="_blank" class="link-danger  m-1">Matt Whitcomb </a><i class="bi bi-code-slash"></i> 
+            <p class="lead">Copyright &copy; <span id="current-year">2026</span> <br><i class="bi bi-car-front-fill"></i><i class="bi bi-activity text-danger"></i>Liberti's Auto Electric</p>
+            <!-- .small: Bootstrap utility for de-emphasized "fine print" text
+                 (87.5% of the parent size) - shrinks this credit line (icon
+                 included, since bi- icons scale with font-size) a notch
+                 below the main footer text, without a one-off font-size rule. -->
+            <p class="small">Website <i class="bi bi-code-slash"></i> by <br>
+                <a href="https://mkwtek.github.io/portfolio/" target="_blank" class="link-danger m-1">Matt Whitcomb</a>
+                <!-- Small joke Matt wanted added under his name - wrapped in
+                     Bootstrap's <small> tag (same 87.5%-size treatment as the
+                     rest of this credit line) so it reads as a quiet aside,
+                     not a second heading. -->
+                <small class="d-block text-white-50">(former Liberti's Auto Tech)</small>
             </p>
             <!-- <a href="#" class="position-absolute bottom-0 end-0 p-5"> -->
             <!-- <a href="#" class="d-block position-fixed bottom-0 end-0 p-3"> Changed classes: d-block, position-fixed -->
-            <a href="#" class="position-absolute bottom-0 end-0 p-3">
+            <!-- This link's only content used to be the icon - nothing a
+                 screen reader could read out as what the link actually
+                 does, so it announced as a blank, nameless link. aria-label
+                 gives it the same name a sighted person gets just by
+                 looking at the up-arrow icon, without changing how it looks
+                 for anyone else. -->
+            <a href="#" class="position-absolute bottom-0 end-0 p-3" aria-label="Back to top">
                 <i class="bi bi-arrow-up-circle h1 text-danger"></i>
             </a>
         </div>
     </footer>
 
     <!-- Modal Form -->
-    <div class="modal fade" id="message" tabindex="-1" aria-labelledby="messageLabel" aria-hidden="true">
-        <div class="modal-dialog">
+    <!-- This wrapper's id used to be "message" - the same id as the
+         "Message:" textarea inside the form below (id="message", the one
+         that matches <label for="message">). Two elements sharing one id is
+         invalid HTML, and it's exactly what Chrome's Issues panel was
+         flagging twice under "Incorrect use of <label for=FORM_ELEMENT>":
+         with two elements named "message" on the page, the browser can't
+         reliably tell which one the label is actually for - getElementById
+         resolves to whichever one comes first in the HTML (this div, not
+         the textarea), so the label was at risk of being associated with a
+         modal wrapper instead of the field it's sitting right next to.
+         Renamed this wrapper to "messageModal" (only referenced by the
+         "Send Us a Message" button's data-bs-target, updated to match) so
+         the "message" id belongs solely to the textarea again. -->
+    <div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h1 class="modal-title fs-5" id="messsageLabel"><i class="bi bi-envelope-at"></i>&#160; Send Us a Message</h1>
+                    <!-- This id had a typo (three s's - "messsageLabel") that
+                         didn't match the "aria-labelledby" attribute on the
+                         modal wrapper further up, which points to
+                         "messageLabel" (two s's). That mismatch meant a
+                         screen reader announcing this modal was following a
+                         reference to an id that didn't exist anywhere on the
+                         page, so it had nothing to actually read as the
+                         modal's name. Fixing the spelling so the two match
+                         is the whole fix - no visual change at all. -->
+                    <h1 class="modal-title fs-5" id="messageLabel"><i class="bi bi-envelope-at"></i>&#160; Send Us a Message</h1>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <p class="lead">Please fill out this form and we will get back to you as soon as we can!</p>
+                    <!-- None of these fields had an autocomplete attribute, which is
+                         what Chrome's DevTools "Issues" panel flags under "Input
+                         elements should have autocomplete attributes" - each label
+                         and id/name pair here already correctly identifies what the
+                         field is for (that part was fine), but without the matching
+                         autocomplete token the browser has no standardized signal to
+                         offer to fill the field from a visitor's own saved info, so
+                         first-time and returning visitors alike have to type all five
+                         fields out by hand every time. Values below use the standard
+                         WHATWG autocomplete tokens for each field's meaning
+                         (https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofill).
+                         "message" is left without one - there's no standard token for
+                         a free-text field like this, so there's nothing meaningful to
+                         autofill it with anyway. -->
                     <form id="form1" action="https://formspree.io/f/myyqywqb" method="POST">
 
                         <div class="mb-3">
                             <label for="first-name" class="col-form-label" >
-                                First Name: 
+                                First Name:
                             </label>
-                            <input type="text" class="form-control" id="first-name" placeholder="" name="first-name" required>
+                            <input type="text" class="form-control" id="first-name" placeholder="" name="first-name" autocomplete="given-name" required>
                         </div>
 
                         <div class="mb-3">
                             <label for="last-name" class="col-form-label" >
-                                Last Name: 
+                                Last Name:
                             </label>
-                            <input type="text" class="form-control" id="last-name" placeholder="" name="last-name" required>
+                            <input type="text" class="form-control" id="last-name" placeholder="" name="last-name" autocomplete="family-name" required>
                         </div>
 
                         <div class="mb-3">
                             <label for="email" class="col-form-label" >
-                                Email: 
+                                Email:
                             </label>
-                            <input type="email" class="form-control" id="email" placeholder="" name="email" required>
+                            <input type="email" class="form-control" id="email" placeholder="" name="email" autocomplete="email" required>
                         </div>
 
                         <div class="mb-3">
                             <label for="phone" class="col-form-label" >
-                                Phone: 
+                                Phone:
                             </label>
-                            <input type="tel" class="form-control" id="phone" placeholder="" name="phone" required>
+                            <input type="tel" class="form-control" id="phone" placeholder="" name="phone" autocomplete="tel" required>
                         </div>
-                        
+
                         <div class="mb-3">
                             <label for="message" class="col-form-label">
-                                Message: 
+                                Message:
                             </label>
                             <textarea type="text" class="form-control" id="message" placeholder="" name="message" rows="3"></textarea>
                         </div>
-                        
+
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     <!-- <button type="button" class="btn btn-primary">Submit</button> -->
-                    <button type="submit" class="btn btn-danger" form="form1" value="Submit">Submit</button> 
+                    <button type="submit" class="btn btn-danger" form="form1" value="Submit">Submit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Newsletter Modal -->
+    <div class="modal fade" id="newsletter" tabindex="-1" aria-labelledby="newsletterLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="newsletterLabel"><i class="bi bi-envelope-at"></i>&#160; Sign Up For Our Newsletter</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- MailerLite Embedded Form: Liberti's Auto Subscription Sign Up Form (form id 7uo0ai / 95979017777186043) -->
+                    <div id="mlb2-6904338" class="ml-form-embedContainer ml-subscribe-form ml-subscribe-form-6904338">
+                        <div class="ml-form-align-center">
+                            <div class="ml-form-embedWrapper embedForm">
+                                <div class="ml-form-embedBody ml-form-embedBodyDefault row-form">
+                                    <p class="lead">Get occasional updates and offers from Liberti's Auto Electric.</p>
+                                    <form class="ml-block-form" action="https://assets.mailerlite.com/jsonp/547738/forms/95979017777186043/subscribe" data-code="" method="post" target="_blank">
+                                        <div class="ml-form-formContent mb-3">
+                                            <div class="ml-form-fieldRow ml-last-item">
+                                                <div class="ml-field-group ml-field-email ml-validate-email ml-validate-required">
+                                                    <input aria-label="email" aria-required="true" type="email" class="form-control" name="fields[email]" placeholder="Enter Email" autocomplete="email" required>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="ml-form-recaptcha ml-validate-required mb-3 d-flex justify-content-center" style="float: none;">
+                                            <!-- Google's recaptcha/api.js script used to be loaded
+                                                 right here unconditionally, meaning EVERY visitor
+                                                 downloaded and ran it on EVERY page load, whether or
+                                                 not they ever opened this modal at all. It's now
+                                                 loaded on demand instead, right when this modal is
+                                                 actually opened - see assets/js/app.js, search
+                                                 "recaptcha" - so a visitor who never signs up for the
+                                                 newsletter never pays for it. -->
+                                            <div class="g-recaptcha" data-sitekey="6Lf1KHQUAAAAAFNKEX1hdSWCS3mRMv4FlFaNslaD" data-theme="dark"></div>
+                                        </div>
+                                        <input type="hidden" name="ml-submit" value="1">
+                                        <div class="ml-form-embedSubmit d-grid">
+                                            <!-- No "btn-lg" here - matches the plain default btn
+                                                 size of the "Sign Up For Our Newsletter" button that
+                                                 opens this modal in the first place (see the
+                                                 Newsletter Section further up this file), instead of
+                                                 the bigger size MailerLite's own generated embed code
+                                                 originally set on it. -->
+                                            <button type="submit" class="primary btn btn-danger">Subscribe</button>
+                                            <button disabled="disabled" style="display: none;" type="button" class="loading">
+                                                <div class="ml-form-embedSubmitLoad"></div>
+                                                <span class="sr-only">Loading...</span>
+                                            </button>
+                                        </div>
+                                        <input type="hidden" name="anticsrf" value="true">
+                                    </form>
+                                </div>
+                                <div class="ml-form-successBody row-success" style="display: none">
+                                    <!-- Was h4 - this modal's own title just above ("Sign Up
+                                         For Our Newsletter") is an h1, so this jumped straight
+                                         past h2 and h3. This message only shows up after a
+                                         successful sign-up (it's hidden the rest of the time -
+                                         see the "display: none" above, MailerLite's own
+                                         generated code swaps it in on success), but a screen
+                                         reader still needs a real, in-order heading here once
+                                         it IS showing. h2 is the correct next step down. -->
+                                    <div class="ml-form-successContent text-center">
+                                        <h2>Thank you!</h2>
+                                        <p>You have successfully joined our subscriber list.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- End MailerLite Embedded Form -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
     </div>
 
     <script src="./assets/js/app.js" ></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src='https://api.mapbox.com/mapbox-gl-js/v2.9.1/mapbox-gl.js'></script>
+    <!-- defer added: this script is a normal blocking <script> even though
+         it's placed near the bottom of the page, which means the HTML
+         parser still has to stop and wait for it to download and run before
+         moving on - Lighthouse's "render-blocking requests" audit was
+         counting it (alongside bootstrap.min.css in <head>) toward that
+         1,470ms estimated savings. defer tells the browser to keep
+         downloading it in the background without blocking parsing, then run
+         it right after the rest of the document is parsed - functionally
+         the same timing as today (it already runs after everything above
+         it exists), just without stalling the parser to get there. Safe to
+         defer here specifically because nothing on this page calls
+         Bootstrap's JS API directly at parse time - the modal/dropdown/etc.
+         triggers below are plain data-bs-* attributes that Bootstrap wires
+         up via one delegated listener once this script runs, so it doesn't
+         matter whether that happens a few milliseconds earlier or later,
+         only that it happens before a visitor actually clicks something. -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+
+    <!-- MailerLite Newsletter Form: submit handling, validation, and success/error behavior (from MailerLite's own generated code, unmodified) -->
+    <script>
+        function ml_webform_success_6904338() {
+            var $ = ml_jQuery || jQuery;
+            $('.ml-subscribe-form-6904338 .row-success').show();
+            $('.ml-subscribe-form-6904338 .row-form').hide();
+        }
+    </script>
+    <script src="https://groot.mailerlite.com/js/w/webforms.min.js?v1f25ee4b05f240a833e02c19975434a4" type="text/javascript"></script>
+    <script>
+        fetch("https://assets.mailerlite.com/jsonp/547738/forms/95979017777186043/takel")
+    </script>
+    <!-- End MailerLite Newsletter Form scripts -->
 
 </body>
 </html>
