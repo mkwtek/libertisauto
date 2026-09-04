@@ -539,6 +539,74 @@ nav.navbar {
     animation-duration: 0.75s;
 }
 
+/* Mobile only: these 3 cards animate in on the page-load timer above
+   (700/800/900ms delays, choreographed to land alongside the hero text
+   and newsletter button around the 1.5s mark) - that's correct on
+   desktop, where the cards are already on-screen at load, but on mobile
+   they're below the fold at that moment. The animation plays out and
+   finishes while it's still invisible, so by the time someone actually
+   scrolls down to it, there's nothing left to see (Matt's Sept 2026
+   report). Rather than rebuild these to use the site's separate
+   .scroll-reveal system (which doesn't support this kind of precise,
+   multi-element choreographed timing), this freezes the SAME existing
+   animation at its very first frame - invisible, thanks to animate.css's
+   own animation-fill-mode:both holding the "0%" keyframe state for as
+   long as something is paused, delay or no delay - and a small
+   IntersectionObserver in app.js (search "mobileCardReveal") flips it
+   back to running once this row actually scrolls into view. Each card's
+   own delay/duration and the 100ms stagger between them still plays out
+   exactly as above, just starting from "scrolled to" instead of "page
+   load".
+
+   767.98px matches the exact breakpoint these 3 cards already use to go
+   from stacked-single-column to side-by-side (Bootstrap's col-md), so
+   "mobile" here means the same thing it already does for this row's own
+   layout - not a new, separate cutoff. Desktop (768px+) is completely
+   untouched by this rule. */
+@media (max-width: 767.98px) {
+    #box1, #box2, #box3 {
+        animation-play-state: paused;
+    }
+
+    #box1.mobile-cards-revealed,
+    #box2.mobile-cards-revealed,
+    #box3.mobile-cards-revealed {
+        animation-play-state: running;
+    }
+
+    /* The 700/800/900ms delays above are tuned for the page-load
+       choreography (landing alongside the hero text/newsletter band
+       around 1.5s), which reads fine since nothing on the page is being
+       watched right at that instant. On mobile, though, the delay only
+       starts counting once this row is actually scrolled into view (see
+       the big comment above and app.js's IntersectionObserver), so a
+       visitor is looking right at these cards while they sit blank for
+       up to 900ms - reads as sluggish rather than choreographed. These
+       ID+class selectors are more specific than the plain #box1/#box2/
+       #box3 rule above, so they override just the delay, only once
+       revealed, only on mobile - the 100ms stagger between cards and the
+       desktop page-load timing are both unchanged.
+
+       Sept 2026: first cut to 300/400/500ms, still too long, cut again
+       to 100/200/300ms, still too long, cut again to 0/100/200ms, still
+       too long - box1 was already at 0ms (the floor, it starts the
+       instant this row is 30% scrolled into view), so this 4th round
+       tightened the 100ms stagger between cards instead, down to 50ms:
+       now 0/50/100ms. Same 3 selectors, adjust these 3 values again if
+       needed. */
+    #box1.mobile-cards-revealed {
+        animation-delay: 0ms;
+    }
+
+    #box2.mobile-cards-revealed {
+        animation-delay: 50ms;
+    }
+
+    #box3.mobile-cards-revealed {
+        animation-delay: 100ms;
+    }
+}
+
 /* Hybrid card: back to a grey that's visually distinct from box1/box3's
    bg-dark, per request - but NOT Bootstrap's stock bg-secondary (#6c757d),
    which only pairs with white/text-light text at ~4.44:1 contrast, just
@@ -1701,5 +1769,28 @@ footer .bi-arrow-up-circle {
 footer a:hover .bi-arrow-up-circle,
 footer a:focus-visible .bi-arrow-up-circle {
     transform: translateY(-4px) scale(1.1);
+}
+
+/* "Back to top" link: real tester feedback (Sept 2026) said this was a
+   small tap target on mobile. The measured click box was already fairly
+   generous on paper (this link's own p-3 padding plus the icon's h1
+   font-size works out to roughly 60x73px, comfortably above the 44px
+   iOS/WCAG minimum) - the real problem is that most of that box is
+   invisible padding a visitor has no way to see, so what they actually
+   aim for is just the small visible circle glyph itself. A bigger VISIBLE
+   icon is a bigger real target, not just a bigger hidden one, so this
+   bumps the icon's size directly (rather than only adding more invisible
+   padding around the same small glyph) and gives it a little extra
+   padding too. Desktop is untouched - nobody's reported this being hard
+   to click with a mouse, and the current size matches this footer's
+   existing visual weight there. */
+@media (max-width: 767.98px) {
+    footer a[aria-label="Back to top"] {
+        padding: 1.25rem !important;
+    }
+
+    footer a[aria-label="Back to top"] .bi-arrow-up-circle {
+        font-size: 3.5rem;
+    }
 }
 
