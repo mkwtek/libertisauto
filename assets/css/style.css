@@ -721,59 +721,28 @@ nav.navbar {
    completely separate carousel further down the page (the "Check Out Our
    Work" photo gallery, #carouselExampleAutoplaying) that also uses
    Bootstrap's plain .carousel-item class for its slides, and an unscoped
-   rule here would force its naturally-sized images into this too. */
+   rule here would force its naturally-sized images into this too.
+
+   Sept 2026 update: this 700px used to be paired with 3 extra mobile
+   breakpoint overrides below (a flat number per width band, each guessed
+   from a handful of sample widths). Real testing found real gaps between
+   those samples - e.g. the 401-480px band reserved 820px, but review 2
+   actually needs ~858px right at 401px itself, so switching to it grew the
+   box and shoved the page below it down (then back up switching away).
+   Same story at other band edges. A finite list of guessed breakpoints
+   can't cover every real width a text reflow depends on.
+
+   Fixed properly in app.js instead (search "Reviews carousel: measure the
+   real height" there): JS measures exactly how tall each review needs to
+   be at the visitor's actual current width and sets min-height directly,
+   inline, overriding this value - so this 700px is now only what shows
+   for a brief instant before that JS runs (or if it doesn't run at all),
+   not the real answer for any specific width anymore. Leave it as a
+   reasonable, harmless fallback; don't reintroduce per-width overrides
+   here to "fix" a width JS already actually solves correctly. */
 #carouselExampleControls .carousel-item {
     min-height: 700px;
     transition: min-height 0.3s ease;
-}
-
-/* These breakpoints exist purely to keep the reserved box above from
-   massively overshooting what a review actually needs on common phone
-   widths. Before this (Sept 3 2026), there was only ONE mobile override
-   (a flat 1040px below 480px) sized to fit the longest review at a very
-   narrow, now largely obsolete 320px-wide phone - real testers on normal
-   modern phones (375-430px, the vast majority of iPhones/Androids sold in
-   the last several years) got 130-225px of pure dead air below every
-   review, even the longest one, because their screens are wider than
-   320px and so need noticeably less height than that flat number assumed.
-
-   Each value below was measured directly (Playwright, temporarily
-   stripping min-height and reading each review's own natural content
-   height at that width) rather than guessed, then given a roughly
-   20-25px buffer on top of the tallest of the 3 reviews at that width.
-   If a review is ever added, removed, or reworded, re-measure rather than
-   eyeballing a new number - "Reviews carousel: mobile whitespace fix" in
-   the project notes has the full measured table this was built from.
-
-   Devices narrower than 375px (increasingly rare) aren't specifically
-   covered - min-height still just lets the box grow a bit further to fit
-   them there instead of clipping anything, exactly as the comment above
-   describes, it's just no longer reserving that same generous amount for
-   every far more common wider phone too. */
-@media (max-width: 400px) {
-    #carouselExampleControls .carousel-item {
-        min-height: 940px;
-    }
-}
-
-@media (min-width: 401px) and (max-width: 480px) {
-    #carouselExampleControls .carousel-item {
-        min-height: 820px;
-    }
-}
-
-@media (min-width: 481px) and (max-width: 600px) {
-    /* This band (481-600px, roughly a large phone in landscape or a small
-       tablet portrait) was actually slightly UNDER-reserved before, not
-       over: the old flat 700px default (still used below 600px) is a
-       little short of the ~744px the longest review actually needs right
-       above the old 480px breakpoint, meaning the box would have quietly
-       grown taller specifically on review 2 in this narrow width range,
-       a small page-jump nobody happened to report. Fixed as part of the
-       same measurement pass. */
-    #carouselExampleControls .carousel-item {
-        min-height: 760px;
-    }
 }
 
 .carousel-slide-inner {
