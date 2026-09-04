@@ -8,13 +8,127 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Note: an earlier version of this file also resized the testimonial
-// carousel with JS on every slide change. That's gone now - it caused the
-// page content below the carousel to shift on every slide, and touching the
-// live slide element to measure it fought with Bootstrap's own slide
-// animation (visible as a ghost/smear while sliding). The carousel now uses
-// a fixed height with vertical centering, handled entirely in style.css -
-// no JS needed for it at all.
+// Reviews carousel: measure the real height each review needs at the
+// visitor's actual width, instead of guessing it. Root cause of two past
+// bugs, both now avoided:
+//   1) An earlier version of this file resized the carousel on every SLIDE
+//      CHANGE - it made the box hug whichever review was currently showing,
+//      which is exactly backwards (it caused the very page-jump this code
+//      exists to prevent) and it touched the live/animating slide, which
+//      fought with Bootstrap's own transition (visible ghosting). This
+//      version never touches the active slide's size and never changes the
+//      shared height mid-visit - it computes ONE constant value, shared by
+//      all 3 reviews, so which review is showing never affects page layout.
+//   2) After that, style.css tried fixed pixel breakpoints instead (a flat
+//      700px, with narrower overrides below 600px) sized from a handful of
+//      sample widths (320/375/390/414/430/460/480/600/768/1280px) with a
+//      guessed buffer on top. Real testing found gaps AT UNSAMPLED widths
+//      the guesses missed - e.g. at 401px review 2 needs ~858px but the
+//      401-480px band only reserved 820px, so switching to it grew the box
+//      ~38px and shoved everything below it down (and back up switching
+//      away). Same story right at 320px and 481px. A handful of sampled
+//      widths can't cover every real device width a text reflow depends on.
+//
+// Fix: at load (and on resize) measure how tall EACH review's own content
+// actually needs to be at the CURRENT width, take the tallest of the 3, and
+// set that as min-height on all 3 .carousel-item elements together. Exact
+// for this visitor's real width/fonts, no breakpoint table to maintain, and
+// correct at every width, not just the ones someone thought to test.
+(function () {
+    var carousel = document.getElementById('carouselExampleControls');
+    if (!carousel) return;
+    var items = carousel.querySelectorAll('.carousel-item');
+    if (!items.length) return;
+
+    // Content height = distance from the top of the first child to the
+    // bottom of the last child inside .carousel-slide-inner. Reading it
+    // this way (rather than the slide-inner's own scrollHeight) matters
+    // because .carousel-slide-inner is set to min-height:100% of a box
+    // that's already been artificially stretched to fit the room reserved
+    // for other reviews - its own rendered height would just reflect that
+    // stretch, not what this particular review's content actually needs.
+    function measureContentHeight(item) {
+        var inner = item.querySelector('.carousel-slide-inner');
+        if (!inner || !inner.firstElementChild || !inner.lastElementChild) return 0;
+        var top = inner.firstElementChild.getBoundingClientRect().top;
+        var bottom = inner.lastElementChild.getBoundingClientRect().bottom;
+        return bottom - top;
+    }
+
+    // style.css puts a "transition: min-height 0.3s ease" on these items,
+    // there for a real reason: a smooth resize if someone rotates their
+    // phone or drags a desktop window narrower. But that same transition
+    // would also fire the very first time this script sets min-height on
+    // page load, animating a visible ~300ms grow/shrink from the CSS
+    // fallback (700px) up to the real computed value on every visit - a
+    // glitch that didn't exist before this script ran. hasRunOnce lets the
+    // very first call snap to the right height instantly (no transition),
+    // while every later resize-triggered call still transitions smoothly.
+    var hasRunOnce = false;
+
+    function recalculate() {
+        var activeItem = carousel.querySelector('.carousel-item.active') || items[0];
+        var widthPx = activeItem.getBoundingClientRect().width;
+        var tallest = 0;
+
+        items.forEach(function (item) {
+            if (item.classList.contains('active')) {
+                tallest = Math.max(tallest, measureContentHeight(item));
+                return;
+            }
+            // Inactive items are display:none via Bootstrap's own CSS, and
+            // a display:none element can't be measured. Make this one
+            // measurable without ever letting it become visible on screen
+            // (position:absolute + visibility:hidden takes it out of the
+            // page's flow, so nothing else shifts while it's briefly
+            // switched on) or interrupting Bootstrap's slide state, then
+            // put it right back to how it was.
+            var prevCssText = item.style.cssText;
+            item.style.cssText = prevCssText +
+                ';display:block !important;position:absolute;visibility:hidden;top:0;left:0;width:' + widthPx + 'px;';
+            tallest = Math.max(tallest, measureContentHeight(item));
+            item.style.cssText = prevCssText;
+        });
+
+        if (tallest > 0) {
+            // +8px is a small rounding buffer for sub-pixel layout
+            // differences between browsers, not a guess at content size.
+            var finalHeight = Math.ceil(tallest) + 8;
+            if (!hasRunOnce) {
+                items.forEach(function (item) { item.style.transition = 'none'; });
+                items.forEach(function (item) { item.style.minHeight = finalHeight + 'px'; });
+                // Force layout so the 'none' transition is actually applied
+                // before it's cleared below, otherwise the browser can
+                // collapse both style changes into one frame and transition
+                // anyway.
+                void carousel.offsetHeight;
+                items.forEach(function (item) { item.style.transition = ''; });
+                hasRunOnce = true;
+            } else {
+                items.forEach(function (item) {
+                    item.style.minHeight = finalHeight + 'px';
+                });
+            }
+        }
+    }
+
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(recalculate, 150);
+    });
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', recalculate);
+    } else {
+        recalculate();
+    }
+    // Re-run once web fonts finish swapping in, since that can reflow text
+    // (and therefore each review's needed height) after the first pass.
+    if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(recalculate);
+    }
+})();
 
 // Note: the newsletter button briefly had a JS-driven "fade in, then
 // pulse" entrance here (chaining two animate.css classes via
