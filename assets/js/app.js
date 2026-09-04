@@ -294,3 +294,50 @@ if (reviewsCarouselEl) {
 function stopReviewsAutoplay() {
     bootstrap.Carousel.getOrCreateInstance(reviewsCarouselEl).pause();
 }
+
+// 3 Boxes section (Repair/Hybrid/Service): on mobile only, style.css pauses
+// #box1/#box2/#box3's existing page-load fade-in animation right at its
+// first (invisible) frame instead of letting it play on the page-load timer
+// - see style.css, search "mobileCardReveal" - since on mobile these cards
+// are below the fold at load and the animation would otherwise finish
+// unseen before anyone scrolled down to it. This just flips it back to
+// running once the row actually scrolls into view, adding the
+// "mobile-cards-revealed" class the CSS is watching for. On desktop nothing
+// is ever paused in the first place (see style.css, that rule is scoped to
+// max-width: 767.98px), so this same observer firing there - typically
+// almost immediately, since the cards are already on-screen at load - is
+// completely harmless: setting an animation that's already running to
+// "running" again does nothing.
+document.addEventListener('DOMContentLoaded', function () {
+    var mobileCardEls = ['box1', 'box2', 'box3']
+        .map(function (id) { return document.getElementById(id); })
+        .filter(Boolean);
+
+    if (!mobileCardEls.length) {
+        return;
+    }
+
+    function revealMobileCards() {
+        mobileCardEls.forEach(function (el) {
+            el.classList.add('mobile-cards-revealed');
+        });
+    }
+
+    if (!('IntersectionObserver' in window)) {
+        // No IntersectionObserver support: reveal immediately rather than
+        // leaving these permanently paused/invisible on mobile.
+        revealMobileCards();
+        return;
+    }
+
+    var mobileCardObserver = new IntersectionObserver(function (entries, obs) {
+        var anyVisible = entries.some(function (entry) { return entry.isIntersecting; });
+        if (!anyVisible) {
+            return;
+        }
+        revealMobileCards();
+        mobileCardEls.forEach(function (el) { obs.unobserve(el); });
+    }, { threshold: 0.3 });
+
+    mobileCardEls.forEach(function (el) { mobileCardObserver.observe(el); });
+});
