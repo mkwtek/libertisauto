@@ -357,9 +357,20 @@
                     </p>
                         <!-- Same fix as the "Read More" link in the About Us section above,
                              for the same reason - the SEO "descriptive link text" check
-                             looks at this visible text, not the aria-label. -->
-                        <a href="https://www.ase.com/about-ase/" target="_blank" class="btn btn-light mt-3" aria-label="Read more about ASE certification on ase.com">
-                            <i class="bi bi-chevron-right"></i> Read More About ASE
+                             looks at this visible text, not the aria-label.
+
+                             External-link treatment (Sept 2026): this leaves the site to
+                             ase.com, so it gets the same trailing bi-box-arrow-up-right
+                             icon and rel="noopener noreferrer" as every other external
+                             link on the page (see the "More Reviews" buttons further down
+                             for the fuller explanation). Because this link already uses
+                             aria-label instead of relying on its own visible text for its
+                             accessible name, aria-label completely REPLACES what a screen
+                             reader announces - a separate visually-hidden span here would
+                             just be silently ignored, so "(opens in a new tab)" is appended
+                             directly into the aria-label string instead. -->
+                        <a href="https://www.ase.com/about-ase/" target="_blank" rel="noopener noreferrer" class="btn btn-light mt-3" aria-label="Read more about ASE certification on ase.com (opens in a new tab)">
+                            <i class="bi bi-chevron-right"></i> Read More About ASE <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
                         </a>
                 </div>
                 <!-- <div class="col-lg-6 d-flex justify-content-lg-end align-items-center "> -->
@@ -424,7 +435,19 @@
                                  down from that h3. -->
                             <h4 class="card-title text-center">What does AAA's AAR mean?</h4>
                             <p class="card-text text-center">Becoming an AAR or "Approved Auto Repair" shop by AAA is not easy. If a shop wants an AAA approval designation, then an AAA service specialist must inspect the shop for cleanliness, proper tools, adequate technical training of employees, and the appropriate technician certifications. They will also make sure that the shop uses modern equipment and meets other criteria before allowing a shop to carry the AAR designation. Click the button below to go to the AAA website and see our reviews!</p>
-                            <a href="https://www.aaa.com/autorepair/shop/libertis-auto-electric-1461" class="btn btn-primary" target="_blank">Local AAR Shops</a>
+                            <!-- External-link treatment (Sept 2026): real tester feedback
+                                 flagged that buttons like this don't make it obvious they
+                                 leave Liberti's own site - unlike Yelp/Google/SureCritic
+                                 further down, "Local AAR Shops" doesn't name the
+                                 destination site at all. Trailing icon for sighted users,
+                                 visually-hidden text for screen readers (same pattern
+                                 already used on the Lamp/Brake Handbook buttons below),
+                                 plus rel="noopener noreferrer" - standard practice for any
+                                 target="_blank" link, whether or not the destination is
+                                 trusted, since it stops the new tab from getting a live
+                                 reference back to this page (a legacy security/performance
+                                 concern some browsers still don't fully handle on their own). -->
+                            <a href="https://www.aaa.com/autorepair/shop/libertis-auto-electric-1461" class="btn btn-primary" target="_blank" rel="noopener noreferrer">Local AAR Shops <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span></a>
                         </div>
                     </div>
                 </div>
@@ -451,9 +474,16 @@
                                  something like this it just announces "Lamp Handbook,
                                  link" and someone on a slow connection or a screen
                                  reader has no warning it's a PDF (bigger download,
-                                 opens differently) before clicking it. -->
-                            <a href="https://www.bar.ca.gov/pdf/lamp-handbook-9.3.15.pdf" target="_blank" class="btn btn-primary m-3">Lamp Handbook<span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
-                            <a href="https://www.bar.ca.gov/pdf/brake-adjuster-handbook.pdf" target="_blank" class="btn btn-primary m-3">Brake Handbook<span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
+                                 opens differently) before clicking it.
+
+                                 External-link icon and rel="noopener noreferrer" added
+                                 Sept 2026 alongside the AAA/Yelp/SureCritic/Google buttons
+                                 elsewhere on this page - same reasoning, see the "Local AAR
+                                 Shops" button above. The hidden text here already said
+                                 "opens in a new tab", so it didn't need changing, just the
+                                 new visible icon and rel attribute to match. -->
+                            <a href="https://www.bar.ca.gov/pdf/lamp-handbook-9.3.15.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-primary m-3">Lamp Handbook <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
+                            <a href="https://www.bar.ca.gov/pdf/brake-adjuster-handbook.pdf" target="_blank" rel="noopener noreferrer" class="btn btn-primary m-3">Brake Handbook <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (PDF, opens in a new tab)</span></a>
                         </div>
                     </div>
                 </div>
@@ -880,22 +910,32 @@
                      heading underneath. -->
                 <h3 class="mb-3 fw-semibold fs-6">More Reviews</h3>
                 <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <!-- External-link treatment (Sept 2026) on all 3 buttons below:
+                         trailing bi-box-arrow-up-right icon plus a visually-hidden
+                         "(opens in a new tab)" for screen readers (same pattern as the
+                         Lamp/Brake Handbook and AAA buttons above), and
+                         rel="noopener noreferrer" since these are all target="_blank".
+                         Lower priority than the AAA button above since each of these
+                         already leads with its own recognizable brand icon/logo, which
+                         already signals "different website" - but added anyway for
+                         consistency, and it costs nothing for visitors less familiar
+                         with these specific platforms. -->
                     <!-- yelp -->
-                    <a href="https://www.yelp.com/biz/libertis-auto-electric-milpitas?osq=Libertis+Auto+Electric" target="_blank" class="btn btn-outline-danger">
-                        <i class="bi bi-yelp"></i> Yelp
+                    <a href="https://www.yelp.com/biz/libertis-auto-electric-milpitas?osq=Libertis+Auto+Electric" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger">
+                        <i class="bi bi-yelp"></i> Yelp <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span>
                     </a>
                     <!-- surecritic -->
-                    <a href="https://www.surecritic.com/reviews/libertis-auto-electric" target="_blank" class="btn btn-outline-danger">
+                    <a href="https://www.surecritic.com/reviews/libertis-auto-electric" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger">
                         <!-- Real file is 374x354. This one was already fully safe either
                              way - #surecritic in style.css sets an explicit height:20px
                              and width:auto, which fully controls the rendered size
                              regardless of these attributes - but Lighthouse's check
                              still wants them present, so adding the real values. -->
-                        <img loading="lazy" id="surecritic" src="./assets/img/surecriticlogo.png" width="374" height="354" alt="sure critic logo"> SureCritic
+                        <img loading="lazy" id="surecritic" src="./assets/img/surecriticlogo.png" width="374" height="354" alt="sure critic logo"> SureCritic <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span>
                     </a>
                     <!-- google -->
-                    <a href="https://www.google.com/maps/place/Liberti's+Auto+Electric/@37.4091517,-121.9046149,17z/data=!4m8!3m7!1s0x808fc94b479fc527:0xfee1e4a9596f4246!8m2!3d37.4091475!4d-121.90204!9m1!1b1!16s%2Fg%2F11h0ltgpc?entry=ttu" target="_blank" class="btn btn-outline-danger">
-                        <i class="bi bi-google"></i> Google Reviews
+                    <a href="https://www.google.com/maps/place/Liberti's+Auto+Electric/@37.4091517,-121.9046149,17z/data=!4m8!3m7!1s0x808fc94b479fc527:0xfee1e4a9596f4246!8m2!3d37.4091475!4d-121.90204!9m1!1b1!16s%2Fg%2F11h0ltgpc?entry=ttu" target="_blank" rel="noopener noreferrer" class="btn btn-outline-danger">
+                        <i class="bi bi-google"></i> Google Reviews <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span>
                     </a>
                 </div>
             </div>
@@ -1167,7 +1207,9 @@
                  included, since bi- icons scale with font-size) a notch
                  below the main footer text, without a one-off font-size rule. -->
             <p class="small">Website <i class="bi bi-code-slash"></i> by <br>
-                <a href="https://mkwtek.github.io/portfolio/" target="_blank" class="link-danger m-1">Matt Whitcomb</a>
+                <!-- External-link treatment (Sept 2026), same pattern/reasoning as
+                     every other target="_blank" link on this page. -->
+                <a href="https://mkwtek.github.io/portfolio/" target="_blank" rel="noopener noreferrer" class="link-danger m-1">Matt Whitcomb <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i><span class="visually-hidden"> (opens in a new tab)</span></a>
                 <!-- Small joke Matt wanted added under his name - wrapped in
                      Bootstrap's <small> tag (same 87.5%-size treatment as the
                      rest of this credit line) so it reads as a quiet aside,
@@ -1304,7 +1346,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- MailerLite Embedded Form: Liberti's Auto Subscription Sign Up Form (Matt's own portfolio-demo account, form id 95979017777186043 - this copy intentionally uses Matt's own MailerLite/Formspree accounts instead of Steve's real ones, see the top-level README/notes for why) -->
+                    <!-- MailerLite Embedded Form: Liberti's Auto Subscription Sign Up Form (Matt's own portfolio-demo account, form id 95979017777186043) - this copy intentionally uses Matt's own MailerLite/Formspree accounts instead of Steve's real ones, since these files are for the portfolio GitHub repo, not the live site -->
                     <div id="mlb2-6904338" class="ml-form-embedContainer ml-subscribe-form ml-subscribe-form-6904338">
                         <div class="ml-form-align-center">
                             <div class="ml-form-embedWrapper embedForm">
