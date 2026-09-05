@@ -796,6 +796,31 @@ nav.navbar {
     opacity: 1;
 }
 
+/* Inline SVG instead of the bi-chevron-left/right icon font glyphs used
+   everywhere else on the page. These two buttons are the only icon-only,
+   no-text controls on the page (every other bi- icon is either decorative
+   or paired with visible text), so they're the one spot where a slow/weak
+   connection causing the icon font to still be loading actually breaks the
+   control rather than just looking slightly incomplete for a moment: with
+   no font loaded yet, the browser renders these chevrons' private-use-area
+   codepoints in a fallback font, which can't represent them and shows a
+   small hollow "missing glyph" box instead - on a weak signal that can last
+   several seconds, since bootstrap-icons.css is intentionally deferred
+   behind the hero image and other higher-priority assets (see the <link
+   rel="preload" as="image"> comment in index.html's head). Inline SVG has
+   no separate network request at all, so it can't ever show that broken
+   state, while every other bi- icon on the page keeps using the icon font
+   as before. Sized/colored to match what the icon font glyphs looked like
+   here: 1em so it scales with .review-nav-arrow's own font-size, currentColor
+   so it inherits the same color and hover/focus opacity transition above,
+   same -0.125em baseline nudge bootstrap-icons.css applies to its own glyphs. */
+.review-nav-icon {
+    width: 1em;
+    height: 1em;
+    fill: currentColor;
+    vertical-align: -0.125em;
+}
+
 /* Same dash shape/sizing Bootstrap's own .carousel-indicators buttons used
    (30px x 3px) - testers already reacted fine to that shape once it was
    actually visible; the fix here is proximity to the text, not the shape
